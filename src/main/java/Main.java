@@ -4,40 +4,60 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-public class Main {
-    public static void main(String[] args) {
-        ServerSocket serverSocket = null;
-        Socket clientSocket = null;
-        int port = 6379;
-        try {
-            serverSocket = new ServerSocket(port);
-            // Since the tester restarts your program quite often, setting
-            // SO_REUSEADDR ensures that we don't run into 'Address already in use'
-            // errors
-            
-            serverSocket.setReuseAddress(true);
-            // Wait for connection from client.
-            clientSocket = serverSocket.accept();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            OutputStream out = clientSocket.getOutputStream();
 
+// Thread to handle client communication
+class ClientHandler extends Thread {
+    private Socket clientSocket;
+
+    public ClientHandler(Socket socket) {
+        this.clientSocket = socket;
+    }
+
+    @Override
+    public void run() {
+        try (
+                BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                OutputStream out = clientSocket.getOutputStream()
+        ) {
             String inputLine;
-
-            while ((inputLine = reader.readLine())!= null) {
-                if(inputLine.equals("PING")){
+            while ((inputLine = reader.readLine()) != null) {
+                if (inputLine.equals("PING")) {
                     out.write("+PONG\r\n".getBytes());
                 }
             }
         } catch (IOException e) {
-            System.out.println("IOException: " + e.getMessage());
+            System.out.println("IOException in client handler: " + e.getMessage());
         } finally {
             try {
                 if (clientSocket != null) {
                     clientSocket.close();
                 }
             } catch (IOException e) {
-                System.out.println("IOException: " + e.getMessage());
+                System.out.println("IOException when closing client socket: " + e.getMessage());
             }
+        }
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        int port = 6379;
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            serverSocket.setReuseAddress(true);
+
+            System.out.println("Server started, waiting for connections...");
+
+            while (true) {
+                // Accept the client connection
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("New client connected");
+
+                // Create a new thread to handle the client
+                ClientHandler clientHandler = new ClientHandler(clientSocket);
+                clientHandler.start();  // Start the thread for this client
+            }
+        } catch (IOException e) {
+            System.out.println("IOException: " + e.getMessage());
         }
     }
 }
