@@ -27,7 +27,8 @@ class ClientHandler extends Thread {
                 }
                 else if(inputLine.equalsIgnoreCase("ECHO")){
                     reader.readLine();
-                    out.write(String.format("$%d\r\n%s\r\n", inputLine.length(), inputLine).getBytes());
+                    String message = reader.readLine();
+                    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
                 }
             }
         } catch (IOException e) {
