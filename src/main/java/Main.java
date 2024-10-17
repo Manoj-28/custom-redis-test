@@ -19,8 +19,9 @@ class ClientHandler extends Thread {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 OutputStream out = clientSocket.getOutputStream()
         ) {
-            String inputLine;
-            while ((inputLine = reader.readLine()) != null) {
+
+            while (true) {
+                String inputLine = reader.readLine();
                 if (inputLine.equals("PING")) {
                     out.write("+PONG\r\n".getBytes());
                 }
