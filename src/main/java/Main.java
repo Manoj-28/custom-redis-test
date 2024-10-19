@@ -25,7 +25,7 @@ class ClientHandler extends Thread {
 
             while (true) {
                 String inputLine = reader.readLine();
-
+                System.out.println("Inputline: "+inputLine);
                 if (inputLine == null) break;
 
                 String[] commandParts = inputLine.split(" ");
