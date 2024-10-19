@@ -28,25 +28,21 @@ class ClientHandler extends Thread {
 
                 if (inputLine == null) break;
 
-                // Split the input line into command parts
                 String[] commandParts = inputLine.split(" ");
-                // Print the command parts for debugging
-                System.out.println("Command parts: " + String.join(", ", commandParts));
-
+                System.out.println("cd0"+commandParts[0]);
                 String command = commandParts[0].toUpperCase();
                 if (command.equals("PING")) {
                     out.write("+PONG\r\n".getBytes());
                 } else if (command.equals("ECHO")) {
-                    reader.readLine();  // Consume the next line
+                    reader.readLine();
                     String message = reader.readLine();
                     out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
                 } else if (command.equals("SET")) {
                     handleSetCommand(commandParts, out);
-                } else if (command.equals("GET")) {
+                } else if (command.equals(("GET"))) {
                     handleGetCommand(commandParts, out);
-                } else {
-                    out.write("-ERR unknown command\r\n".getBytes());
                 }
+
             }
         } catch (IOException e) {
             System.out.println("IOException in client handler: " + e.getMessage());
@@ -70,11 +66,12 @@ class ClientHandler extends Thread {
         String value = commandParts[2];
 
         KeyValueStore.put(key, value);
+
         out.write("+OK\r\n".getBytes());
     }
+     private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
 
-    private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException {
-        if (commandParts.length < 2) {
+        if(commandParts.length < 2){
             out.write("-ERR wrong number of arguments for 'GET' command\r\n".getBytes());
             return;
         }
@@ -82,12 +79,13 @@ class ClientHandler extends Thread {
         String key = commandParts[1];
         String value = KeyValueStore.get(key);
 
-        if (value != null) {
+        if(value != null){
             out.write(String.format("$%d\r\n%s\r\n", value.length(), value).getBytes());
-        } else {
+        }
+        else{
             out.write("$-1\r\n".getBytes());
         }
-    }
+     }
 }
 
 public class Main {
@@ -95,6 +93,7 @@ public class Main {
         int port = 6379;
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             serverSocket.setReuseAddress(true);
+
             System.out.println("Server started, waiting for connections...");
 
             while (true) {
@@ -105,4 +104,9 @@ public class Main {
                 // Create a new thread to handle the client
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
                 clientHandler.start();  // Start the thread for this client
-
+            }
+        } catch (IOException e) {
+            System.out.println("IOException: " + e.getMessage());
+        }
+    }
+}
