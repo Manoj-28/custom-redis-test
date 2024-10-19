@@ -26,8 +26,10 @@ class ClientHandler extends Thread {
                     out.write("+PONG\r\n".getBytes());
                 }
                 else if(inputLine.equalsIgnoreCase("ECHO")){
-//                    reader.readLine();
+                    String test = reader.readLine();
+                    System.out.println(test);
                     String message = reader.readLine();
+                    System.out.println(message);
                     out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
                 }
             }
