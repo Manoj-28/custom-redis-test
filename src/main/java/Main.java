@@ -61,7 +61,8 @@ class ClientHandler extends Thread {
 //            out.write("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
 //            return;
 //        }
-
+        System.out.println("c1"+commandParts[1]);
+        System.out.println("c2"+commandParts[2]);
         String key = commandParts[1];
         String value = commandParts[2];
 
