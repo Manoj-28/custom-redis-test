@@ -57,10 +57,10 @@ class ClientHandler extends Thread {
     }
 
     private void handleSetCommand(String[] commandParts, OutputStream out) throws IOException {
-        if (commandParts.length < 2) {
-            out.write("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
-            return;
-        }
+//        if (commandParts.length < 2) {
+//            out.write("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
+//            return;
+//        }
 
         String key = commandParts[1];
         String value = commandParts[2];
@@ -71,10 +71,10 @@ class ClientHandler extends Thread {
     }
      private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
 
-        if(commandParts.length < 2){
-            out.write("-ERR wrong number of arguments for 'GET' command\r\n".getBytes());
-            return;
-        }
+//        if(commandParts.length < 2){
+//            out.write("-ERR wrong number of arguments for 'GET' command\r\n".getBytes());
+//            return;
+//        }
 
         String key = commandParts[1];
         String value = KeyValueStore.get(key);
