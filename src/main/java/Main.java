@@ -26,8 +26,19 @@ class ClientHandler extends Thread {
     private Socket clientSocket;
     public static Map<String, ValueWithExpiry> KeyValueStore = new HashMap<>();
 
+    private static String dir;
+    private static String dbfilename;
+
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
+    }
+
+    public static void setDir(String dirPath){
+        dir = dirPath;
+    }
+
+    public static void setDbfilename(String filename){
+        dbfilename = filename;
     }
 
     @Override
@@ -62,6 +73,9 @@ class ClientHandler extends Thread {
                                 break;
                             case "GET":
                                 handleGetCommand(commandParts, out);
+                                break;
+                            case "CONFIG":
+                                handleConfigGetCommand(commandParts,out);
                                 break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
@@ -146,11 +160,48 @@ class ClientHandler extends Thread {
             out.write("$-1\r\n".getBytes());
         }
     }
+
+    public void handleConfigGetCommand(String[] commandParts, OutputStream out) throws IOException{
+        if(commandParts.length < 2){
+            out.write("-ERR wrong number of arguments for 'CONFIG GET' command\r\n".getBytes());
+            return;
+        }
+        String configParam = commandParts[1].toLowerCase();
+        String response;
+
+        switch (configParam){
+            case "dir":
+                response = String.format("$%d\r\n%s\r\n", dir.length(), dir);
+                out.write(response.getBytes());
+                break;
+            case "dbfilename":
+                response = String.format("$%d\r\n%s\r\n", dbfilename.length(), dbfilename);
+                out.write(response.getBytes());
+                break;
+            default:
+                out.write("-ERR unknown configuration parameter\r\n".getBytes());
+        }
+    }
 }
 
 public class Main {
     public static void main(String[] args) {
         int port = 6379;
+        String dir = "/tmp/redis-files";    //default dir
+        String dbfilename = "dump.rdb";     //default dbfilename
+
+        for(int i=0;i<args.length;i++){
+            if(args[i].equals("--dir") && i+1 < args.length){
+                dir = args[i+1];
+            }
+            else if(args[i].equals("--dbfilename") && i+1 < args.length){
+                dbfilename = args[i+1];
+            }
+        }
+
+        ClientHandler.setDir(dir);
+        ClientHandler.setDbfilename(dbfilename);
+
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             serverSocket.setReuseAddress(true);
 
