@@ -28,7 +28,7 @@ class ClientHandler extends Thread {
                 System.out.println("Inputline: "+inputLine);
                 if (inputLine == null) break;
 
-                String[] commandParts = inputLine.split(" ");
+                String[] commandParts = inputLine.split("\r\n");
                 System.out.println("cd0"+commandParts[0]);
                 String command = commandParts[0].toUpperCase();
                 if (command.equals("PING")) {
