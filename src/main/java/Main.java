@@ -171,11 +171,11 @@ class ClientHandler extends Thread {
 
         switch (configParam){
             case "dir":
-                response = String.format("$%d\r\n%s\r\n", dir.length(), dir);
+                response = String.format("*2\r\n$3\r\ndir\r\n$%d\r\n%s\r\n", dir.length(), dir);
                 out.write(response.getBytes());
                 break;
             case "dbfilename":
-                response = String.format("$%d\r\n%s\r\n", dbfilename.length(), dbfilename);
+                response = String.format("*2\r\n$9\r\ndbfilename\r\n$%d\r\n%s\r\n", dbfilename.length(), dbfilename);
                 out.write(response.getBytes());
                 break;
             default:
