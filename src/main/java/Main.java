@@ -166,7 +166,7 @@ class ClientHandler extends Thread {
             out.write("-ERR wrong number of arguments for 'CONFIG GET' command\r\n".getBytes());
             return;
         }
-        String configParam = commandParts[1].toLowerCase();
+        String configParam = commandParts[2].toLowerCase();
         String response;
 
         switch (configParam){
