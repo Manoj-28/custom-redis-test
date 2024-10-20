@@ -7,10 +7,24 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.HashMap;
 
+class ValueWithExpiry{
+    String value;
+    long expiryTime;
+
+    public ValueWithExpiry(String value,long expiryTime){
+        this.value =value;
+        this.expiryTime = expiryTime;
+    }
+
+    public boolean isExpired(){
+        return expiryTime > 0 && System.currentTimeMillis() > expiryTime;
+    }
+}
+
 // Thread to handle client communication
 class ClientHandler extends Thread {
     private Socket clientSocket;
-    public static Map<String, String> KeyValueStore = new HashMap<>();
+    public static Map<String, ValueWithExpiry> KeyValueStore = new HashMap<>();
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -91,8 +105,20 @@ class ClientHandler extends Thread {
         }
         String key = commandParts[1];
         String value = commandParts[2];
+        long expiryTime = -1;
 
-        KeyValueStore.put(key, value);
+        if(commandParts.length >= 5 && commandParts[3].equalsIgnoreCase("PX")){
+            try{
+                long expiryInMilliseconds = Long.parseLong(commandParts[4]);
+                expiryTime = System.currentTimeMillis() + expiryInMilliseconds;
+            }
+            catch (NumberFormatException e){
+                out.write("-ERR invalid PX argument\r\n".getBytes());
+                return;
+            }
+        }
+
+        KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));
 
         out.write("+OK\r\n".getBytes());
     }
@@ -104,10 +130,17 @@ class ClientHandler extends Thread {
         }
 
         String key = commandParts[1];
-        String value = KeyValueStore.get(key);
+        ValueWithExpiry valueWithExpiry = KeyValueStore.get(key);
 
-        if(value != null){
-            out.write(String.format("$%d\r\n%s\r\n", value.length(), value).getBytes());
+        if(valueWithExpiry != null){
+            if(valueWithExpiry.isExpired()){
+                KeyValueStore.remove(key);
+                out.write("$-1\r\n".getBytes());
+            }
+            else{
+                String value = valueWithExpiry.value;
+                out.write(String.format("$%d\r\n%s\r\n", value.length(), value).getBytes());
+            }
         }
         else{
             out.write("$-1\r\n".getBytes());
