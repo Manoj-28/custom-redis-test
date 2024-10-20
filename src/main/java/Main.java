@@ -40,7 +40,7 @@ class ClientHandler extends Thread {
                             case "ECHO":
                                 if(commandParts.length > 1){
                                     String message = commandParts[1];
-                                    out.write(String.format("$%\d\r\n%s\r\n", message.length(), message).getBytes());
+                                    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
                                 }
                             case "SET":
                                 handleSetCommand(commandParts,out);
