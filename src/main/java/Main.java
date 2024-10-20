@@ -42,10 +42,13 @@ class ClientHandler extends Thread {
                                     String message = commandParts[1];
                                     out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
                                 }
+                                break;
                             case "SET":
                                 handleSetCommand(commandParts,out);
+                                break;
                             case "GET":
                                 handleGetCommand(commandParts, out);
+                                break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
                         }
