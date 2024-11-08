@@ -71,9 +71,9 @@ public class RdbParser {
         System.out.println("Hash table size: " + hashTableSize);
 
         int encryptedKeys = fis.read();
-        int keyType = fis.read();
 
         for (int i = 0; i < hashTableSize; i++) {
+            int keyType = fis.read();
             String key = readString(fis);
             String value = readString(fis);
 
