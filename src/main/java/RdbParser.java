@@ -35,6 +35,7 @@ public class RdbParser {
                         break;
                     case 0xFF:  // End of File
                         System.out.println("End of RDB file");
+                        ignore = fis.read();
                         byte[] checksum = new byte[8];
                         int checkSumRead = fis.read(checksum,0,checksum.length);
                         System.out.println("Checksum: " + ByteBuffer.wrap(checksum).getLong());
