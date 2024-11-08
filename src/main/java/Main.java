@@ -79,6 +79,7 @@ class ClientHandler extends Thread {
                                 break;
                             case "KEYS":
                                 handleKeysCommand(commandParts, out);
+                                break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
                         }
