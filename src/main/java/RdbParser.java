@@ -50,8 +50,8 @@ public class RdbParser {
 
     private static void parseMetadataSection(FileInputStream fis) throws Exception {
         while (fis.available() > 0) {
-            int marker = fis.read();
-            if (marker != 0xFA) break;
+//            int marker = fis.read();
+//            if (marker != 0xFA) break;
 
             String attributeName = readString(fis);
             String attributeValue = readString(fis);
