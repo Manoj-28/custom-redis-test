@@ -100,7 +100,7 @@ class ClientHandler extends Thread {
     }
 
     private void handleKeysCommand(String[] commandParts, OutputStream out) throws IOException {
-        if (commandParts.length < 2 || commandParts[1].equals("*")){
+        if (commandParts.length < 1 || commandParts[1].equals("*")){
             out.write("-ERR unsupported KEYS pattern\r\n".getBytes());
             return;
         }
