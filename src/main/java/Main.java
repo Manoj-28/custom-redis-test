@@ -50,7 +50,6 @@ class ClientHandler extends Thread {
 
             while (true) {
                 String inputLine = reader.readLine();
-//                System.out.println("Inputline: "+inputLine);
                 if (inputLine == null) break;
 
                 if(inputLine.startsWith("*")){
@@ -109,15 +108,15 @@ class ClientHandler extends Thread {
         response.append("*").append(KeyValueStore.size()).append("\r\n");
 
         for (String key: KeyValueStore.keySet()){
-            if(!KeyValueStore.get(key).isExpired()){
+//            if(!KeyValueStore.get(key).isExpired()){
                 response.append(String.format("$%d\r\n%s\r\n", key.length(), key));
-            }
+//            }
         }
         out.write(response.toString().getBytes());
     }
 
-    private String[] parseRespCommand(BufferedReader reader, String firstline) throws IOException{
-        int numElements = Integer.parseInt(firstline.substring(1));
+    private String[] parseRespCommand(BufferedReader reader, String firstLine) throws IOException{
+        int numElements = Integer.parseInt(firstLine.substring(1));
         String[] commandParts = new String[numElements];
 
         for(int i=0;i<numElements;i++){
