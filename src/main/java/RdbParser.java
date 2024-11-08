@@ -25,7 +25,6 @@ public class RdbParser {
             while (fis.available() > 0) {
                 int marker = fis.read();
                 System.out.println("marker: " + marker);
-//                while((marker = fis.read()) != 0xFE);
                 switch (marker) {
                     case 0xFA:  // Metadata Section
                         parseMetadataSection(fis);
