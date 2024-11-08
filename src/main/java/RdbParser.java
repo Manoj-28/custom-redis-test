@@ -50,7 +50,7 @@ public class RdbParser {
     }
 
     private static void parseMetadataSection(FileInputStream fis) throws Exception {
-        while (fis.available() > 0) {
+//        while (fis.available() > 0) {
 //            int marker = fis.read();
 //            if (marker != 0xFA) break;
 
@@ -58,7 +58,7 @@ public class RdbParser {
             String attributeValue = readString(fis);
 
             System.out.println("Metadata: " + attributeName + " = " + attributeValue);
-        }
+//        }
     }
 
     private static void parseDatabaseSection(FileInputStream fis) throws Exception {
