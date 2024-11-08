@@ -35,7 +35,7 @@ public class RdbParser {
                     case 0xFF:  // End of File
                         System.out.println("End of RDB file");
                         byte[] checksum = new byte[8];
-                        fis.read(checksum);
+                        int checkSumRead = fis.read(checksum,0,checksum.length);
                         System.out.println("Checksum: " + ByteBuffer.wrap(checksum).getLong());
                         break;
                     default:
@@ -79,9 +79,9 @@ public class RdbParser {
 
     private static String readString(FileInputStream fis) throws Exception {
         int size = decodeSize(fis);
-        byte[] stringBytes = new byte[size];
-        fis.read(stringBytes);
-        return new String(stringBytes);
+        byte[] stringBuffer = new byte[size];
+         int stringBytes = fis.read(stringBuffer);
+        return new String(stringBuffer);
     }
 
     private static int decodeSize(FileInputStream fis) throws Exception {
@@ -91,9 +91,9 @@ public class RdbParser {
             int secondByte = fis.read();
             size = (size << 8) | secondByte;
         } else if ((firstByte & 0xC0) == 0x80) {
-            byte[] sizeBytes = new byte[4];
-            fis.read(sizeBytes);
-            size = ByteBuffer.wrap(sizeBytes).order(ByteOrder.BIG_ENDIAN).getInt();
+            byte[] sizeBuffer = new byte[4];
+            int sizeBytes = fis.read(sizeBuffer);
+            size = ByteBuffer.wrap(sizeBuffer).order(ByteOrder.BIG_ENDIAN).getInt();
         }
         return size;
     }
