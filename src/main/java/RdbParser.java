@@ -68,8 +68,9 @@ public class RdbParser {
         System.out.println("Hash table size: " + hashTableSize);
 
         for (int i = 0; i < hashTableSize; i++) {
-            int valueType = fis.read();
+            int keySize = fis.read();
             String key = readString(fis);
+            int valueSize = fis.read();
             String value = readString(fis);
 
             System.out.println("Parsed key-value: " + key + " -> " + value);
