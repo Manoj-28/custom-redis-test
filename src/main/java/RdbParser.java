@@ -69,9 +69,14 @@ public class RdbParser {
 
         for (int i = 0; i < hashTableSize; i++) {
             int keySize = fis.read();
-            String key = readString(fis);
+            byte[] keyBytes = new byte[keySize];
+            int ks = fis.read(keyBytes);
+            String key = new String(keyBytes);
+//            String key = readString(fis);
             int valueSize = fis.read();
-            String value = readString(fis);
+            byte[] valueBytes = new byte[valueSize];
+            int vs = fis.read(valueBytes);
+            String value = new String(valueBytes);
 
             System.out.println("Parsed key-value: " + key + " -> " + value);
             ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value, -1));
