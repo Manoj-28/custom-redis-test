@@ -21,8 +21,8 @@ public class RdbParser {
             }
             System.out.println("RDB header: " + new String(header));
 
+            int ignore = fis.read();
             while (fis.available() > 0) {
-                int ignore = fis.read();
                 int marker = fis.read();
 //                while((marker = fis.read()) != 0xFE);
                 switch (marker) {
