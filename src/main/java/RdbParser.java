@@ -77,6 +77,7 @@ public class RdbParser {
             if((check = fis.read()) == 0xFC) {       //if it has expiry
                 byte[] expiryTimeBytes = new byte[8];
                 expiryTime = fis.read(expiryTimeBytes);
+                expiryTime = ByteBuffer.wrap(expiryTimeBytes).order(ByteOrder.LITTLE_ENDIAN).getInt();
                 int keyType = fis.read();
             }
             String key = readString(fis);
