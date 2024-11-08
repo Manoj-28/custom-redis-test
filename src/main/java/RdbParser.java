@@ -22,6 +22,7 @@ public class RdbParser{
             }
             System.out.println("RDB header: " + new String(header));
             while(fis.available() > 0){
+                int ignore = fis.read();
                 int firstByte = fis.read();
                 switch (firstByte){
                     case 0xFE:  //Database Section
