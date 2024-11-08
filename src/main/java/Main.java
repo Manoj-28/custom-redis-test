@@ -120,8 +120,8 @@ class ClientHandler extends Thread {
         String[] commandParts = new String[numElements];
 
         for(int i=0;i<numElements;i++){
-            String lenghtLine = reader.readLine();
-            if(lenghtLine.startsWith("$")){
+            String lengthLine = reader.readLine();
+            if(lengthLine.startsWith("$")){
                 String bulkString = reader.readLine();
                 commandParts[i] = bulkString;
             }
