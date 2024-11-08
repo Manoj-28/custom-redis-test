@@ -72,12 +72,18 @@ public class RdbParser {
         int encryptedKeys = fis.read();
 
         for (int i = 0; i < hashTableSize; i++) {
-            int keyType = fis.read();
+            int expiryTime=-1;
+            int check;
+            if((check = fis.read()) == 0xFC) {       //if it has expiry
+                byte[] expiryTimeBytes = new byte[8];
+                expiryTime = fis.read(expiryTimeBytes);
+                int keyType = fis.read();
+            }
             String key = readString(fis);
             String value = readString(fis);
 
             System.out.println("Parsed key-value: " + key + " -> " + value);
-            ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value, -1));
+            ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value, expiryTime));
         }
     }
 
