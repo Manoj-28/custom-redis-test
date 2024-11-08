@@ -85,6 +85,7 @@ public class RdbParser {
     }
 
     private static int decodeSize(FileInputStream fis) throws Exception {
+        int sizeInfo = fis.read();
         int firstByte = fis.read();
         int size = firstByte & 0x3F;
         if ((firstByte & 0xC0) == 0x40) {
