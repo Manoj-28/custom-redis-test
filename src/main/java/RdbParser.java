@@ -14,7 +14,12 @@ public class RdbParser{
 
         try(FileInputStream fis = new FileInputStream(rdbFile)) {
             byte[] header = new byte[8];
-            fis.read(header);
+            int bytesRead = fis.read(header);
+            // Check if the correct number of bytes was read
+            if (bytesRead != header.length) {
+                System.out.println("Error: Could not read the full header.");
+                return;  // Handle the error appropriately
+            }
             System.out.println("RDB header: " + new String(header));
             while(fis.available() > 0){
                 int firstByte = fis.read();
