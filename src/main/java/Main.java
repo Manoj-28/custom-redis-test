@@ -77,6 +77,8 @@ class ClientHandler extends Thread {
                             case "CONFIG":
                                 handleConfigGetCommand(commandParts,out);
                                 break;
+                            case "KEYS":
+                                handleKeysCommand(commandParts, out);
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
                         }
@@ -95,6 +97,22 @@ class ClientHandler extends Thread {
                 System.out.println("IOException when closing client socket: " + e.getMessage());
             }
         }
+    }
+
+    private void handleKeysCommand(String[] commandParts, OutputStream out) throws IOException {
+        if (commandParts.length < 2 || commandParts[1].equals("*")){
+            out.write("-ERR unsupported KEYS pattern\r\n".getBytes());
+            return;
+        }
+        StringBuilder response = new StringBuilder();
+        response.append("*").append(KeyValueStore.size()).append("\r\n");
+
+        for (String key: KeyValueStore.keySet()){
+            if(!KeyValueStore.get(key).isExpired()){
+                response.append(String.format("$%d\r\n%s\r\n", key.length(), key));
+            }
+        }
+        out.write(response.toString().getBytes());
     }
 
     private String[] parseRespCommand(BufferedReader reader, String firstline) throws IOException{
@@ -198,6 +216,8 @@ public class Main {
                 dbfilename = args[i+1];
             }
         }
+
+        RdbParser.loadRDB(dir,dbfilename);
 
         ClientHandler.setDir(dir);
         ClientHandler.setDbfilename(dbfilename);
