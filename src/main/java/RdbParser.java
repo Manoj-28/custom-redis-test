@@ -68,15 +68,16 @@ public class RdbParser {
         System.out.println("Hash table size: " + hashTableSize);
 
         for (int i = 0; i < hashTableSize; i++) {
-            int keySize = fis.read();
-            byte[] keyBytes = new byte[keySize];
-            int ks = fis.read(keyBytes);
-            String key = new String(keyBytes);
-//            String key = readString(fis);
-            int valueSize = fis.read();
-            byte[] valueBytes = new byte[valueSize];
-            int vs = fis.read(valueBytes);
-            String value = new String(valueBytes);
+//            int keySize = fis.read();
+//            byte[] keyBytes = new byte[keySize];
+//            int ks = fis.read(keyBytes);
+//            String key = new String(keyBytes);
+            String key = readString(fis);
+//            int valueSize = fis.read();
+//            byte[] valueBytes = new byte[valueSize];
+//            int vs = fis.read(valueBytes);
+//            String value = new String(valueBytes);
+            String value = readString(fis);
 
             System.out.println("Parsed key-value: " + key + " -> " + value);
             ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value, -1));
@@ -84,7 +85,8 @@ public class RdbParser {
     }
 
     private static String readString(FileInputStream fis) throws Exception {
-        int size = decodeSize(fis);
+//        int size = decodeSize(fis);
+        int size = fis.read();
         byte[] stringBuffer = new byte[size];
          int stringBytes = fis.read(stringBuffer);
         return new String(stringBuffer);
