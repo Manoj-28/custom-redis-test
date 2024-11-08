@@ -56,9 +56,18 @@ public class RdbParser {
 
 
             String attributeName = readString(fis);
-            String attributeValue = readString(fis);
+            if(attributeName.equals("redis-bits")){
+                int ignore = fis.read();
+                int attributeValue = fis.read();
+                System.out.println("Metadata: " + attributeName + " = " + attributeValue);
+            }
+            else{
+                String attributeValue = readString(fis);
+                System.out.println("Metadata: " + attributeName + " = " + attributeValue);
+            }
 
-            System.out.println("Metadata: " + attributeName + " = " + attributeValue);
+
+
 //        }
     }
 
