@@ -243,7 +243,6 @@ public class Main {
             serverSocket.setReuseAddress(true);
             System.out.println("Server started on port " + port + ", waiting for connections...");
 
-
             while (true) {
                 // Accept the client connection
                 Socket clientSocket = serverSocket.accept();
