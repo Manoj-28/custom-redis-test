@@ -109,7 +109,7 @@ class ClientHandler extends Thread {
 
         for (String key: KeyValueStore.keySet()){
 //            if(!KeyValueStore.get(key).isExpired()){
-                response.append(String.format("$%d\r\n%s\r\n", key.length(), key));
+            response.append(String.format("$%d\r\n%s\r\n", key.length(), key));
 //            }
         }
         out.write(response.toString().getBytes());
@@ -209,31 +209,14 @@ public class Main {
         String dbfilename = "dump.rdb";     //default dbfilename
 
         for(int i=0;i<args.length;i++){
-            switch (args[i]){
-                case "--port":
-                    if(i+1 < args.length){
-                        try{
-                            port = Integer.parseInt(args[i+1]);
-                        }
-                        catch (NumberFormatException e){
-                            System.out.println("Invalid port number. Using default port 6379.");
-                        }
-                    }
-                    break;
-                case "--dir":
-                    if(i+1 < args.length){
-                        dir = args[i+1];
-                    }
-                    break;
-                case "--dbfilename":
-                    if(i+1 < args.length){
-                        dbfilename = args[i+1];
-                    }
-                    break;
+            if(args[i].equals("--dir") && i+1 < args.length){
+                dir = args[i+1];
             }
-
+            else if(args[i].equals("--dbfilename") && i+1 < args.length){
+                dbfilename = args[i+1];
+            }
         }
-        //Load the RDB file
+
         RdbParser.loadRDB(dir,dbfilename);
 
         ClientHandler.setDir(dir);
@@ -241,7 +224,8 @@ public class Main {
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             serverSocket.setReuseAddress(true);
-            System.out.println("Server started on port " + port + ", waiting for connections...");
+
+            System.out.println("Server started, waiting for connections...");
 
             while (true) {
                 // Accept the client connection
