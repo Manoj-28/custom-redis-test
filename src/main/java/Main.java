@@ -260,9 +260,10 @@ public class Main {
                 case "--replicaof":
                     if(i+2 < args.length){
                         masterHost = args[i+1];
+
                         try{
                             masterPort = Integer.parseInt(args[i+2]);
-                            isReplica=true;
+                            ClientHandler.setIsReplica(true);
                         }
                         catch (NumberFormatException e){
                             System.out.println("Invalid master port number. Replication not enabled.");
