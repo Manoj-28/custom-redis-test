@@ -28,6 +28,7 @@ class ClientHandler extends Thread {
 
     private static String dir;
     private static String dbfilename;
+    private static boolean isReplica = false;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -39,6 +40,10 @@ class ClientHandler extends Thread {
 
     public static void setDbfilename(String filename){
         dbfilename = filename;
+    }
+
+    public static void setIsReplica(boolean replica) {
+        isReplica = replica;
     }
 
     private void handleKeysCommand(String[] commandParts, OutputStream out) throws IOException {
@@ -145,7 +150,8 @@ class ClientHandler extends Thread {
     private void handleInfoCommand(String[] commandParts, OutputStream out) throws IOException {
 
         if(commandParts.length >= 2 && "replication".equalsIgnoreCase(commandParts[1])){
-            String infoResponse = "role:master";
+            String role = isReplica ? "slave" : "master";
+            String infoResponse = "role:" + role;
             String bulkString = String.format("$%d\r\n%s\r\n", infoResponse.length(), infoResponse);
             out.write(bulkString.getBytes());
         }
@@ -225,6 +231,9 @@ public class Main {
         int port = 6379;  // Default port
         String dir = "/tmp/redis-files";  // Default directory
         String dbfilename = "dump.rdb";   // Default DB filename
+        boolean isReplica = false;        // Flag to indicate if the server is a replica
+        String masterHost = null;
+        int masterPort=-1;
 
         // Parse the command line arguments
         for (int i = 0; i < args.length; i++) {
@@ -246,6 +255,18 @@ public class Main {
                 case "--dbfilename":
                     if (i + 1 < args.length) {
                         dbfilename = args[i + 1];
+                    }
+                    break;
+                case "--replicaof":
+                    if(i+2 < args.length){
+                        masterHost = args[i+1];
+                        try{
+                            masterPort = Integer.parseInt(args[i+2]);
+                            isReplica=true;
+                        }
+                        catch (NumberFormatException e){
+                            System.out.println("Invalid master port number. Replication not enabled.");
+                        }
                     }
                     break;
             }
