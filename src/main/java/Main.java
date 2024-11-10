@@ -41,64 +41,6 @@ class ClientHandler extends Thread {
         dbfilename = filename;
     }
 
-    @Override
-    public void run() {
-        try (
-                BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                OutputStream out = clientSocket.getOutputStream()
-        ) {
-
-            while (true) {
-                String inputLine = reader.readLine();
-                if (inputLine == null) break;
-
-                if(inputLine.startsWith("*")){
-                    String[] commandParts = parseRespCommand(reader, inputLine);
-                    if(commandParts != null && commandParts.length > 0){
-                        String command = commandParts[0].toUpperCase();
-
-                        switch (command){
-                            case "PING":
-                                out.write("+PONG\r\n".getBytes());
-                                break;
-                            case "ECHO":
-                                if(commandParts.length > 1){
-                                    String message = commandParts[1];
-                                    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
-                                }
-                                break;
-                            case "SET":
-                                handleSetCommand(commandParts,out);
-                                break;
-                            case "GET":
-                                handleGetCommand(commandParts, out);
-                                break;
-                            case "CONFIG":
-                                handleConfigGetCommand(commandParts,out);
-                                break;
-                            case "KEYS":
-                                handleKeysCommand(commandParts, out);
-                                break;
-                            default:
-                                out.write("-ERR unknown command\r\n".getBytes());
-                        }
-                    }
-                }
-
-            }
-        } catch (IOException e) {
-            System.out.println("IOException in client handler: " + e.getMessage());
-        } finally {
-            try {
-                if (clientSocket != null) {
-                    clientSocket.close();
-                }
-            } catch (IOException e) {
-                System.out.println("IOException when closing client socket: " + e.getMessage());
-            }
-        }
-    }
-
     private void handleKeysCommand(String[] commandParts, OutputStream out) throws IOException {
         if (commandParts.length < 1){
             out.write("-ERR unsupported KEYS pattern\r\n".getBytes());
@@ -200,6 +142,80 @@ class ClientHandler extends Thread {
                 out.write("-ERR unknown configuration parameter\r\n".getBytes());
         }
     }
+    private void handleInfoCommand(String[] commandParts, OutputStream out) throws IOException {
+
+        if(commandParts.length >= 2 && "replication".equalsIgnoreCase(commandParts[1])){
+            String infoResponse = "role:master\r\n";
+            String bulkString = String.format("%d\r\n%s", infoResponse.length(), infoResponse);
+            out.write(bulkString.getBytes());
+        }
+        else {
+            out.write("-ERR unsupported INFO section\r\n".getBytes());
+        }
+    }
+
+    @Override
+    public void run() {
+        try (
+                BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                OutputStream out = clientSocket.getOutputStream()
+        ) {
+
+            while (true) {
+                String inputLine = reader.readLine();
+                if (inputLine == null) break;
+
+                if(inputLine.startsWith("*")){
+                    String[] commandParts = parseRespCommand(reader, inputLine);
+                    if(commandParts != null && commandParts.length > 0){
+                        String command = commandParts[0].toUpperCase();
+
+                        switch (command){
+                            case "PING":
+                                out.write("+PONG\r\n".getBytes());
+                                break;
+                            case "ECHO":
+                                if(commandParts.length > 1){
+                                    String message = commandParts[1];
+                                    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
+                                }
+                                break;
+                            case "SET":
+                                handleSetCommand(commandParts,out);
+                                break;
+                            case "GET":
+                                handleGetCommand(commandParts, out);
+                                break;
+                            case "CONFIG":
+                                handleConfigGetCommand(commandParts,out);
+                                break;
+                            case "KEYS":
+                                handleKeysCommand(commandParts, out);
+                                break;
+                            case "INFO":
+                                handleInfoCommand(commandParts,out);
+                                break;
+                            default:
+                                out.write("-ERR unknown command\r\n".getBytes());
+                        }
+                    }
+                }
+
+            }
+        } catch (IOException e) {
+            System.out.println("IOException in client handler: " + e.getMessage());
+        } finally {
+            try {
+                if (clientSocket != null) {
+                    clientSocket.close();
+                }
+            } catch (IOException e) {
+                System.out.println("IOException when closing client socket: " + e.getMessage());
+            }
+        }
+    }
+
+
 }
 
 
