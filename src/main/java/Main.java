@@ -145,8 +145,8 @@ class ClientHandler extends Thread {
     private void handleInfoCommand(String[] commandParts, OutputStream out) throws IOException {
 
         if(commandParts.length >= 2 && "replication".equalsIgnoreCase(commandParts[1])){
-            String infoResponse = "role:master\r\n";
-            String bulkString = String.format("%d\r\n%s", infoResponse.length(), infoResponse);
+            String infoResponse = "role:master";
+            String bulkString = String.format("$%d\r\n%s\r\n", infoResponse.length(), infoResponse);
             out.write(bulkString.getBytes());
         }
         else {
