@@ -206,28 +206,45 @@ class ClientHandler extends Thread {
 
 public class Main {
     public static void main(String[] args) {
-        int port = 6379;
-        String dir = "/tmp/redis-files";    //default dir
-        String dbfilename = "dump.rdb";     //default dbfilename
+        int port = 6379;  // Default port
+        String dir = "/tmp/redis-files";  // Default directory
+        String dbfilename = "dump.rdb";   // Default DB filename
 
-        for(int i=0;i<args.length;i++){
-            if(args[i].equals("--dir") && i+1 < args.length){
-                dir = args[i+1];
-            }
-            else if(args[i].equals("--dbfilename") && i+1 < args.length){
-                dbfilename = args[i+1];
+        // Parse the command line arguments
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "--port":
+                    if (i + 1 < args.length) {
+                        try {
+                            port = Integer.parseInt(args[i + 1]);
+                        } catch (NumberFormatException e) {
+                            System.out.println("Invalid port number. Using default port 6379.");
+                        }
+                    }
+                    break;
+                case "--dir":
+                    if (i + 1 < args.length) {
+                        dir = args[i + 1];
+                    }
+                    break;
+                case "--dbfilename":
+                    if (i + 1 < args.length) {
+                        dbfilename = args[i + 1];
+                    }
+                    break;
             }
         }
 
-        RdbParser.loadRDB(dir,dbfilename);
+        // Load the RDB file
+        RdbParser.loadRDB(dir, dbfilename);
 
+        // Set directory and filename for client handler
         ClientHandler.setDir(dir);
         ClientHandler.setDbfilename(dbfilename);
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             serverSocket.setReuseAddress(true);
-
-            System.out.println("Server started, waiting for connections...");
+            System.out.println("Server started on port " + port + ", waiting for connections...");
 
             while (true) {
                 // Accept the client connection
