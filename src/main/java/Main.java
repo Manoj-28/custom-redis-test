@@ -149,6 +149,7 @@ class ClientHandler extends Thread {
                 return;
             }
         }
+
         KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));
 
         out.write("+OK\r\n".getBytes());
