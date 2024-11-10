@@ -258,6 +258,7 @@ public class Main {
                     }
                     break;
                 case "--replicaof":
+                    System.out.println("Entered replica switch");
                     if(i+2 < args.length){
                         masterHost = args[i+1];
 
