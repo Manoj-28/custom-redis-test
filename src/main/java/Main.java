@@ -152,6 +152,9 @@ class ClientHandler extends Thread {
         if(commandParts.length >= 2 && "replication".equalsIgnoreCase(commandParts[1])){
 
 //            String role = isReplica ? "slave" : "master";
+            System.out.println("isReplica: " + isReplica);
+            System.out.println("dir: " + dir);
+            System.out.println("dbfilename: " + dbfilename);
             String role = "master";
             if(isReplica){
                 role = "slave";
