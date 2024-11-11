@@ -265,6 +265,7 @@ public class Main {
                     break;
                 case "--replicaof":
                     System.out.println("Entered replica switch");
+                    System.out.println("arg: "+ args[i+1]);
                     if(i+2 < args.length){
                         masterHost = args[i+1];
                         System.out.println("Entered replica switch 1st cond");
