@@ -151,12 +151,7 @@ class ClientHandler extends Thread {
 
         if(commandParts.length >= 2 && "replication".equalsIgnoreCase(commandParts[1])){
 
-//            String role = isReplica ? "slave" : "master";
-            System.out.println("isReplica: " + isReplica);
-            String role = "master";
-            if(isReplica){
-                role = "slave";
-            }
+            String role = isReplica ? "slave" : "master";
             String infoResponse = "role:" + role;
             String bulkString = String.format("$%d\r\n%s\r\n", infoResponse.length(), infoResponse);
             out.write(bulkString.getBytes());
@@ -237,9 +232,6 @@ public class Main {
         int port = 6379;  // Default port
         String dir = "/tmp/redis-files";  // Default directory
         String dbfilename = "dump.rdb";   // Default DB filename
-        boolean isReplica = false;        // Flag to indicate if the server is a replica
-        String masterHost = null;
-        int masterPort=-1;
 
         // Parse the command line arguments
         for (int i = 0; i < args.length; i++) {
@@ -264,20 +256,7 @@ public class Main {
                     }
                     break;
                 case "--replicaof":
-                    System.out.println("Entered replica switch");
-                    System.out.println("arg: "+ args[i+1]);
-                    if(i+2 < args.length){
-                        masterHost = args[i+1];
-                        System.out.println("Entered replica switch 1st cond");
-                        try{
-                            System.out.println("Entered replica switch try block");
-                            masterPort = Integer.parseInt(args[i+2]);
-                            ClientHandler.setIsReplica(true);
-                        }
-                        catch (NumberFormatException e){
-                            System.out.println("Invalid master port number. Replication not enabled.");
-                        }
-                    }
+                    ClientHandler.setIsReplica(true);
                     break;
             }
         }
