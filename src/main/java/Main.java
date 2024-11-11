@@ -153,8 +153,6 @@ class ClientHandler extends Thread {
 
 //            String role = isReplica ? "slave" : "master";
             System.out.println("isReplica: " + isReplica);
-            System.out.println("dir: " + dir);
-            System.out.println("dbfilename: " + dbfilename);
             String role = "master";
             if(isReplica){
                 role = "slave";
@@ -269,8 +267,9 @@ public class Main {
                     System.out.println("Entered replica switch");
                     if(i+2 < args.length){
                         masterHost = args[i+1];
-
+                        System.out.println("Entered replica switch 1st cond");
                         try{
+                            System.out.println("Entered replica switch try block");
                             masterPort = Integer.parseInt(args[i+2]);
                             ClientHandler.setIsReplica(true);
                         }
