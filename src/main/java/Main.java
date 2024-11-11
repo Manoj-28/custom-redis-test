@@ -150,8 +150,12 @@ class ClientHandler extends Thread {
     private void handleInfoCommand(String[] commandParts, OutputStream out) throws IOException {
 
         if(commandParts.length >= 2 && "replication".equalsIgnoreCase(commandParts[1])){
-            String role = isReplica ? "slave" : "master";
-//            String role = "slave";
+
+//            String role = isReplica ? "slave" : "master";
+            String role = "master";
+            if(isReplica){
+                role = "slave";
+            }
             String infoResponse = "role:" + role;
             String bulkString = String.format("$%d\r\n%s\r\n", infoResponse.length(), infoResponse);
             out.write(bulkString.getBytes());
