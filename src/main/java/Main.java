@@ -212,7 +212,6 @@ class ClientHandler extends Thread {
                         }
                     }
                 }
-
             }
         } catch (IOException e) {
             System.out.println("IOException in client handler: " + e.getMessage());
