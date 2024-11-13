@@ -30,6 +30,10 @@ class ClientHandler extends Thread {
     private static String dbfilename;
     private static boolean isReplica;
 
+    // Hardcoded replication ID and offset
+    private static final String REPLICATION_ID = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+    private static final long REPLICATION_OFFSET = 0;
+
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
     }
@@ -149,14 +153,15 @@ class ClientHandler extends Thread {
     }
     private void handleInfoCommand(String[] commandParts, OutputStream out) throws IOException {
 
-        if(commandParts.length >= 2 && "replication".equalsIgnoreCase(commandParts[1])){
-
+        if (commandParts.length >= 2 && "replication".equalsIgnoreCase(commandParts[1])) {
             String role = isReplica ? "slave" : "master";
-            String infoResponse = "role:" + role;
+            String infoResponse = String.format(
+                    "role:%s\r\nmaster_replid:%s\r\nmaster_repl_offset:%d",
+                    role, REPLICATION_ID, REPLICATION_OFFSET
+            );
             String bulkString = String.format("$%d\r\n%s\r\n", infoResponse.length(), infoResponse);
             out.write(bulkString.getBytes());
-        }
-        else {
+        } else {
             out.write("-ERR unsupported INFO section\r\n".getBytes());
         }
     }
