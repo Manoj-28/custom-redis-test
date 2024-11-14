@@ -293,7 +293,7 @@ public class Main {
         if(isReplica && masterHost != null && masterPort > 0){
             final String finalMasterHost = masterHost;
             final int finalMasterPort = masterPort;
-            new Thread(() -> connectToMaster(finalMasterHost, finalMasterPort)).start();
+            new Thread(() -> connectToMaster(finalMasterHost, finalMasterPort,port)).start();
         }
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
@@ -314,7 +314,7 @@ public class Main {
         }
     }
 
-    public static void connectToMaster(String masterHost, int masterPort){
+    public static void connectToMaster(String masterHost, int masterPort, int replicaPort){
         try(Socket masterSocket = new Socket(masterHost,masterPort);
             OutputStream out = masterSocket.getOutputStream();
             BufferedReader in = new BufferedReader(new InputStreamReader(masterSocket.getInputStream()))){
@@ -330,7 +330,7 @@ public class Main {
                 return;
             }
 
-            String replConfListeningPort = String.format("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%d\r\n", masterPort);
+            String replConfListeningPort = String.format("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%d\r\n", replicaPort);
             out.write(replConfListeningPort.getBytes());
             out.flush();
             System.out.println("Sent REPLCONF listening-port to master");
