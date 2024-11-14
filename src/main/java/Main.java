@@ -217,6 +217,7 @@ class ClientHandler extends Thread {
                                 break;
                             case "REPLCONF":
                                 handleReplConfCommand(commandParts,out);
+                                break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
                         }
