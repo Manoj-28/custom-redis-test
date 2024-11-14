@@ -316,12 +316,40 @@ public class Main {
 
     public static void connectToMaster(String masterHost, int masterPort){
         try(Socket masterSocket = new Socket(masterHost,masterPort);
-            OutputStream out = masterSocket.getOutputStream()){
+            OutputStream out = masterSocket.getOutputStream();
+            BufferedReader in = new BufferedReader(new InputStreamReader(masterSocket.getInputStream()))){
             System.out.println("Connected to master at " + masterHost + ":" + masterPort);
             String pingCommand = "*1\r\n$4\r\nPING\r\n";
             out.write(pingCommand.getBytes());
             out.flush();
             System.out.println("Sent PING to master");
+
+            String pingResponse = in.readLine();
+            if(!"+OK".equals(pingResponse)){
+                System.out.println("Unexpected response to PING: " + pingResponse);
+                return;
+            }
+
+            String replConfListeningPort = String.format("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%d\r\n", masterPort);
+            out.write(replConfListeningPort.getBytes());
+            out.flush();
+            System.out.println("Sent REPLCONF listening-port to master");
+
+            String replConfListeningPortResponse = in.readLine();
+            if (!"+OK".equals(replConfListeningPortResponse)) {
+                System.out.println("Unexpected response to REPLCONF listening-port: " + replConfListeningPortResponse);
+                return;
+            }
+
+            String replConfCapa = "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n";
+            out.write(replConfCapa.getBytes());
+            out.flush();
+            System.out.println("Sent REPLCONF capa psync2 to master");
+
+            String replConfCapaResponse = in.readLine();
+            if (!"+OK".equals(replConfCapaResponse)) {
+                System.out.println("Unexpected response to REPLCONF capa psync2: " + replConfCapaResponse);
+            }
         }
         catch (IOException e){
             System.out.println("IOException when connecting to master: " + e.getMessage());
