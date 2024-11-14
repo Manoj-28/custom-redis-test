@@ -166,6 +166,14 @@ class ClientHandler extends Thread {
         }
     }
 
+    private void handleReplConfCommand(String[] commandParts, OutputStream out) throws IOException{
+        if(commandParts.length < 2){
+            out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
+            return;
+        }
+        out.write("+OK\r\n".getBytes());
+    }
+
     @Override
     public void run() {
         try (
@@ -207,6 +215,8 @@ class ClientHandler extends Thread {
                             case "INFO":
                                 handleInfoCommand(commandParts,out);
                                 break;
+                            case "REPLCONF":
+                                handleReplConfCommand(commandParts,out);
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
                         }
