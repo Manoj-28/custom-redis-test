@@ -293,7 +293,8 @@ public class Main {
         if(isReplica && masterHost != null && masterPort > 0){
             final String finalMasterHost = masterHost;
             final int finalMasterPort = masterPort;
-            new Thread(() -> connectToMaster(finalMasterHost, finalMasterPort,port)).start();
+            int finalReplicaPort = port;
+            new Thread(() -> connectToMaster(finalMasterHost, finalMasterPort, finalReplicaPort)).start();
         }
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
