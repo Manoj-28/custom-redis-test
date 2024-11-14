@@ -325,7 +325,7 @@ public class Main {
             System.out.println("Sent PING to master");
 
             String pingResponse = in.readLine();
-            if(!"+OK".equals(pingResponse)){
+            if(!"+PONG".equals(pingResponse)){
                 System.out.println("Unexpected response to PING: " + pingResponse);
                 return;
             }
