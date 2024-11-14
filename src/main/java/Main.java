@@ -288,7 +288,7 @@ public class Main {
 
         ClientHandler.setDir(dir);
         ClientHandler.setDbfilename(dbfilename);
-        ClientHandler.setIsReplica(true);
+        ClientHandler.setIsReplica(isReplica);
 
         if(isReplica && masterHost != null && masterPort > 0){
             final String finalMasterHost = masterHost;
