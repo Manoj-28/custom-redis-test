@@ -318,7 +318,7 @@ public class Main {
         try(Socket masterSocket = new Socket(masterHost,masterPort);
             OutputStream out = masterSocket.getOutputStream()){
             System.out.println("Connected to master at " + masterHost + ":" + masterPort);
-            String pingCommand = "*1\r\n4\r\nPING\r\n";
+            String pingCommand = "*1\r\n$4\r\nPING\r\n";
             out.write(pingCommand.getBytes());
             out.flush();
             System.out.println("Sent PING to master");
