@@ -236,6 +236,9 @@ public class Main {
         int port = 6379;  // Default port
         String dir = "/tmp/redis-files";  // Default directory
         String dbfilename = "dump.rdb";   // Default DB filename
+        String masterHost="";
+        int masterPort=-1;
+        boolean isReplica=false;
 
         // Parse the command line arguments
         for (int i = 0; i < args.length; i++) {
@@ -260,7 +263,22 @@ public class Main {
                     }
                     break;
                 case "--replicaof":
-                    ClientHandler.setIsReplica(true);
+                    if(i+1 < args.length){
+                        String[] hostAndPort = args[i+1].split(" ");
+                        if(hostAndPort.length == 2){
+                            masterHost = hostAndPort[0];
+                            try {
+                                masterPort = Integer.parseInt(hostAndPort[1]);
+                                isReplica = true;
+                            }
+                            catch (NumberFormatException e){
+                                System.out.println("Invalid master port number.");
+                            }
+                        }
+                        else{
+                            System.out.println("Invalid format for --replicaof. Expected: \"<host> <port>\"");
+                        }
+                    }
                     break;
             }
         }
@@ -268,9 +286,15 @@ public class Main {
         // Load the RDB file
         RdbParser.loadRDB(dir, dbfilename);
 
-        // Set directory and filename for client handler
         ClientHandler.setDir(dir);
         ClientHandler.setDbfilename(dbfilename);
+        ClientHandler.setIsReplica(true);
+
+        if(isReplica && masterHost != null && masterPort > 0){
+            final String finalMasterHost = masterHost;
+            final int finalMasterPort = masterPort;
+            new Thread(() -> connectToMaster(finalMasterHost, finalMasterPort)).start();
+        }
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             serverSocket.setReuseAddress(true);
@@ -287,6 +311,20 @@ public class Main {
             }
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
+        }
+    }
+
+    public static void connectToMaster(String masterHost, int masterPort){
+        try(Socket masterSocket = new Socket(masterHost,masterPort);
+            OutputStream out = masterSocket.getOutputStream()){
+            System.out.println("Connected to master at " + masterHost + ":" + masterPort);
+            String pingCommand = "*1\r\n4\r\nPING\r\n";
+            out.write(pingCommand.getBytes());
+            out.flush();
+            System.out.println("Sent PING to master");
+        }
+        catch (IOException e){
+            System.out.println("IOException when connecting to master: " + e.getMessage());
         }
     }
 }
