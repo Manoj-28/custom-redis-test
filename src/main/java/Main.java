@@ -351,6 +351,18 @@ public class Main {
             if (!"+OK".equals(replConfCapaResponse)) {
                 System.out.println("Unexpected response to REPLCONF capa psync2: " + replConfCapaResponse);
             }
+
+            String psyncCommand = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n";
+            out.write(psyncCommand.getBytes());
+            out.flush();
+            System.out.println("Sent PSYNC ? -1 to master");
+
+            String psyncResponse = in.readLine();
+            if (psyncResponse != null && psyncResponse.startsWith("+FULLRESYNC")) {
+                System.out.println("Received FULLRESYNC from master: " + psyncResponse);
+            } else {
+                System.out.println("Unexpected response to PSYNC: " + psyncResponse);
+            }
         }
         catch (IOException e){
             System.out.println("IOException when connecting to master: " + e.getMessage());
