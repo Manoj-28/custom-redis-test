@@ -179,7 +179,7 @@ class ClientHandler extends Thread {
             out.write("-ERR wrong number of arguments for 'PSYNC' command\r\n".getBytes());
             return;
         }
-        String psyncResponse = String.format("FULLRESYNC\r\n%s\r\n%d\r\n", REPLICATION_ID, REPLICATION_OFFSET);
+        String psyncResponse = String.format("+FULLRESYNC\r\n%s\r\n%d\r\n", REPLICATION_ID, REPLICATION_OFFSET);
         String bulkString = String.format("$%d\r\n%s\r\n", psyncResponse.length(), psyncResponse);
         out.write(bulkString.getBytes());
     }
@@ -230,6 +230,7 @@ class ClientHandler extends Thread {
                                 break;
                             case "PSYNC":
                                 handlePsyncCommand(commandParts,out);
+                                break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
                         }
