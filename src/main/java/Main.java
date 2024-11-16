@@ -107,7 +107,7 @@ class ClientHandler extends Thread {
 
         out.write("+OK\r\n".getBytes());
 
-        String respCommand = String.format("*3\r\n$3\r\nSET\r\n%d\r\n%s\r\n%d\r\n%s\r\n", key.length(), key, value.length(), value);
+        String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
 
         for(Socket replicaSocket : replicas){
             try{
