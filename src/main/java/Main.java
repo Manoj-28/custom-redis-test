@@ -222,7 +222,6 @@ class ClientHandler extends Thread {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 OutputStream out = clientSocket.getOutputStream()
         ) {
-
             while (true) {
                 String inputLine = reader.readLine();
                 if (inputLine == null) break;
