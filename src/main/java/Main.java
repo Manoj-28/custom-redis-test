@@ -175,13 +175,13 @@ class ClientHandler extends Thread {
     }
 
     private void handlePsyncCommand(String[] commandParts, OutputStream out) throws IOException{
-        if(commandParts.length < 2){
+        if(commandParts.length != 3){
             out.write("-ERR wrong number of arguments for 'PSYNC' command\r\n".getBytes());
             return;
         }
         String psyncResponse = String.format("+FULLRESYNC\r\n%s\r\n%d\r\n", REPLICATION_ID, REPLICATION_OFFSET);
-        String bulkString = String.format("$%d\r\n%s\r\n", psyncResponse.length(), psyncResponse);
-        out.write(bulkString.getBytes());
+//        String bulkString = String.format("$%d\r\n%s\r\n", psyncResponse.length(), psyncResponse);
+        out.write(psyncResponse.getBytes());
     }
 
     @Override
