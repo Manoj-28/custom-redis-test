@@ -4,6 +4,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Base64;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -174,6 +175,21 @@ class ClientHandler extends Thread {
         out.write("+OK\r\n".getBytes());
     }
 
+    private byte[] getEmptyRDBFileContent(){
+        String base64RDB = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
+        return Base64.getDecoder().decode(base64RDB);
+    }
+
+    private void sendEmptyRDBFile(OutputStream out) throws IOException{
+        byte[] rdbContent = getEmptyRDBFileContent();
+        int length = rdbContent.length;
+        String header = String.format("$%d\r\n", length);
+
+        out.write(header.getBytes());
+        out.write(rdbContent);
+        out.flush();
+    }
+
     private void handlePsyncCommand(String[] commandParts, OutputStream out) throws IOException{
         if(commandParts.length != 3){
             out.write("-ERR wrong number of arguments for 'PSYNC' command\r\n".getBytes());
@@ -182,6 +198,8 @@ class ClientHandler extends Thread {
         String psyncResponse = String.format("+FULLRESYNC %s %d\r\n", REPLICATION_ID, REPLICATION_OFFSET);
 //        String bulkString = String.format("$%d\r\n%s\r\n", psyncResponse.length(), psyncResponse);
         out.write(psyncResponse.getBytes());
+
+        sendEmptyRDBFile(out);
     }
 
     @Override
