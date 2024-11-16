@@ -7,6 +7,8 @@ import java.net.Socket;
 import java.util.Base64;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 class ValueWithExpiry{
     String value;
@@ -26,6 +28,7 @@ class ValueWithExpiry{
 class ClientHandler extends Thread {
     private Socket clientSocket;
     public static Map<String, ValueWithExpiry> KeyValueStore = new HashMap<>();
+    private static List<Socket> replicas = new CopyOnWriteArrayList<>();
 
     private static String dir;
     private static String dbfilename;
@@ -60,9 +63,7 @@ class ClientHandler extends Thread {
         response.append("*").append(KeyValueStore.size()).append("\r\n");
 
         for (String key: KeyValueStore.keySet()){
-//            if(!KeyValueStore.get(key).isExpired()){
             response.append(String.format("$%d\r\n%s\r\n", key.length(), key));
-//            }
         }
         out.write(response.toString().getBytes());
     }
@@ -105,6 +106,19 @@ class ClientHandler extends Thread {
         KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));
 
         out.write("+OK\r\n".getBytes());
+
+        String respCommand = String.format("*3\r\n$3\r\nSET\r\n%d\r\n%s\r\n%d\r\n%s\r\n", key.length(), key, value.length(), value);
+
+        for(Socket replicaSocket : replicas){
+            try{
+                OutputStream replicaOut = replicaSocket.getOutputStream();
+                replicaOut.write(respCommand.getBytes());
+                replicaOut.flush();
+            }
+            catch (IOException e){
+                System.out.println("Failed to send commands to replica: "  +e.getMessage());
+            }
+        }
     }
     private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
 
@@ -196,7 +210,6 @@ class ClientHandler extends Thread {
             return;
         }
         String psyncResponse = String.format("+FULLRESYNC %s %d\r\n", REPLICATION_ID, REPLICATION_OFFSET);
-//        String bulkString = String.format("$%d\r\n%s\r\n", psyncResponse.length(), psyncResponse);
         out.write(psyncResponse.getBytes());
 
         sendEmptyRDBFile(out);
@@ -204,6 +217,7 @@ class ClientHandler extends Thread {
 
     @Override
     public void run() {
+        boolean isReplicaConnection = false;
         try (
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 OutputStream out = clientSocket.getOutputStream()
@@ -247,6 +261,8 @@ class ClientHandler extends Thread {
                                 handleReplConfCommand(commandParts,out);
                                 break;
                             case "PSYNC":
+                                isReplicaConnection = true;
+                                replicas.add(clientSocket);         //add replica socket
                                 handlePsyncCommand(commandParts,out);
                                 break;
                             default:
@@ -258,17 +274,19 @@ class ClientHandler extends Thread {
         } catch (IOException e) {
             System.out.println("IOException in client handler: " + e.getMessage());
         } finally {
-            try {
-                if (clientSocket != null) {
+            if(clientSocket != null){
+                try{
                     clientSocket.close();
                 }
-            } catch (IOException e) {
-                System.out.println("IOException when closing client socket: " + e.getMessage());
+                catch (IOException e){
+                    System.out.println("IOException when closing client socket: " + e.getMessage());
+                }
+                if(isReplicaConnection){
+                    replicas.remove(clientSocket);      //remove replicas from list
+                }
             }
         }
     }
-
-
 }
 
 
