@@ -85,7 +85,9 @@ class ClientHandler extends Thread {
 
     private void handleSetCommand(String[] commandParts, OutputStream out) throws IOException {
         if (commandParts.length < 3) {
-            out.write("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
+            if(out!=null){
+                out.write("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
+            }
             return;
         }
         String key = commandParts[1];
@@ -98,14 +100,18 @@ class ClientHandler extends Thread {
                 expiryTime = System.currentTimeMillis() + expiryInMilliseconds;
             }
             catch (NumberFormatException e){
-                out.write("-ERR invalid PX argument\r\n".getBytes());
+                if(out!=null){
+                    out.write("-ERR invalid PX argument\r\n".getBytes());
+                }
                 return;
             }
         }
 
         KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));
 
-        out.write("+OK\r\n".getBytes());
+        if(out!=null){
+            out.write("+OK\r\n".getBytes());
+        }
 
         String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
 
@@ -242,7 +248,12 @@ class ClientHandler extends Thread {
                                 }
                                 break;
                             case "SET":
-                                handleSetCommand(commandParts,out);
+                                if(isReplicaConnection){
+                                    handleSetCommand(commandParts,null);
+                                }
+                                else{
+                                    handleSetCommand(commandParts,out);
+                                }
                                 break;
                             case "GET":
                                 handleGetCommand(commandParts, out);
