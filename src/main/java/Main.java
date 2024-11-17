@@ -126,7 +126,7 @@ class ClientHandler extends Thread {
             }
         }
     }
-    private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
+    static void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
 
         if(commandParts.length < 2){
             out.write("-ERR wrong number of arguments for 'GET' command\r\n".getBytes());
@@ -365,7 +365,13 @@ public class Main {
             final String finalMasterHost = masterHost;
             final int finalMasterPort = masterPort;
             int finalReplicaPort = port;
-            new Thread(() -> connectToMaster(finalMasterHost, finalMasterPort, finalReplicaPort)).start();
+            new Thread(() -> {
+                try {
+                    connectToMaster(finalMasterHost, finalMasterPort, finalReplicaPort);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
         }
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
@@ -386,10 +392,10 @@ public class Main {
         }
     }
 
-    public static void connectToMaster(String masterHost, int masterPort, int replicaPort){
+    public static void connectToMaster(String masterHost, int masterPort, int replicaPort) throws IOException {
         try(Socket masterSocket = new Socket(masterHost,masterPort);
             OutputStream out = masterSocket.getOutputStream();
-            BufferedReader in = new BufferedReader(new InputStreamReader(masterSocket.getInputStream()))){
+            BufferedReader in = new BufferedReader(new InputStreamReader(masterSocket.getInputStream()))) {
 
             System.out.println("Connected to master at " + masterHost + ":" + masterPort);
             String pingCommand = "*1\r\n$4\r\nPING\r\n";
@@ -398,7 +404,7 @@ public class Main {
             System.out.println("Sent PING to master");
 
             String pingResponse = in.readLine();
-            if(!"+PONG".equals(pingResponse)){
+            if (!"+PONG".equals(pingResponse)) {
                 System.out.println("Unexpected response to PING: " + pingResponse);
                 return;
             }
@@ -437,22 +443,37 @@ public class Main {
             }
 
             String masterRead;
-            while(true){
+            while (true) {
                 String inputLine = in.readLine();
                 if (inputLine == null) break;
 
-                if(inputLine.startsWith("*")) {
+                if (inputLine.startsWith("*")) {
                     String[] commandParts = ClientHandler.parseRespCommand(in, inputLine);
-                    if(commandParts != null && commandParts.length > 0) {
+                    if (commandParts != null && commandParts.length > 0) {
                         String command = commandParts[0].toUpperCase();
-                        if(command.startsWith("SET")){
-                            ClientHandler.handleSetCommand(commandParts,null);
+
+                        switch (command) {
+                            case "PING":
+                                out.write("+PONG\r\n".getBytes());
+                                break;
+                            case "ECHO":
+                                if (commandParts.length > 1) {
+                                    String message = commandParts[1];
+                                    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
+                                }
+                                break;
+                            case "SET":
+                                ClientHandler.handleSetCommand(commandParts, null);
+                                break;
+                            case "GET":
+                                ClientHandler.handleGetCommand(commandParts, out);
+                                break;
+                            default:
+                                System.out.println("Invalid command");
                         }
                     }
                 }
             }
-
-
         }
         catch (IOException e){
             System.out.println("IOException when connecting to master: " + e.getMessage());
