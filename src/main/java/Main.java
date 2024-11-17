@@ -68,7 +68,7 @@ class ClientHandler extends Thread {
         out.write(response.toString().getBytes());
     }
 
-    private String[] parseRespCommand(BufferedReader reader, String firstLine) throws IOException{
+    static String[] parseRespCommand(BufferedReader reader, String firstLine) throws IOException{
         int numElements = Integer.parseInt(firstLine.substring(1));
         String[] commandParts = new String[numElements];
 
@@ -83,7 +83,7 @@ class ClientHandler extends Thread {
         return commandParts;
     }
 
-    private void handleSetCommand(String[] commandParts, OutputStream out) throws IOException {
+    static void handleSetCommand(String[] commandParts, OutputStream out) throws IOException {
         if (commandParts.length < 3) {
             if(out!=null){
                 out.write("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
@@ -248,14 +248,14 @@ class ClientHandler extends Thread {
                                 }
                                 break;
                             case "SET":
-//                                if(isReplicaConnection){
-//                                    System.out.println("replica set");
-//                                    handleSetCommand(commandParts,null);
-//                                }
-//                                else{
+                                if(isReplicaConnection){
+                                    System.out.println("replica set");
+                                    handleSetCommand(commandParts,null);
+                                }
+                                else{
                                     System.out.println("master set");
                                     handleSetCommand(commandParts,out);
-//                                }
+                                }
                                 break;
                             case "GET":
                                 handleGetCommand(commandParts, out);
@@ -390,6 +390,7 @@ public class Main {
         try(Socket masterSocket = new Socket(masterHost,masterPort);
             OutputStream out = masterSocket.getOutputStream();
             BufferedReader in = new BufferedReader(new InputStreamReader(masterSocket.getInputStream()))){
+
             System.out.println("Connected to master at " + masterHost + ":" + masterPort);
             String pingCommand = "*1\r\n$4\r\nPING\r\n";
             out.write(pingCommand.getBytes());
@@ -434,6 +435,24 @@ public class Main {
             } else {
                 System.out.println("Unexpected response to PSYNC: " + psyncResponse);
             }
+
+            String masterRead;
+            while(true){
+                String inputLine = in.readLine();
+                if (inputLine == null) break;
+
+                if(inputLine.startsWith("*")) {
+                    String[] commandParts = ClientHandler.parseRespCommand(in, inputLine);
+                    if(commandParts != null && commandParts.length > 0) {
+                        String command = commandParts[0].toUpperCase();
+                        if(command.startsWith("SET")){
+                            ClientHandler.handleSetCommand(commandParts,null);
+                        }
+                    }
+                }
+            }
+
+
         }
         catch (IOException e){
             System.out.println("IOException when connecting to master: " + e.getMessage());
