@@ -113,18 +113,18 @@ class ClientHandler extends Thread {
             out.write("+OK\r\n".getBytes());
         }
 
-        String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
-
-        for(Socket replicaSocket : replicas){
-            try{
-                OutputStream replicaOut = replicaSocket.getOutputStream();
-                replicaOut.write(respCommand.getBytes());
-                replicaOut.flush();
-            }
-            catch (IOException e){
-                System.out.println("Failed to send commands to replica: "  +e.getMessage());
-            }
-        }
+//        String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
+//
+//        for(Socket replicaSocket : replicas){
+//            try{
+//                OutputStream replicaOut = replicaSocket.getOutputStream();
+//                replicaOut.write(respCommand.getBytes());
+//                replicaOut.flush();
+//            }
+//            catch (IOException e){
+//                System.out.println("Failed to send commands to replica: "  +e.getMessage());
+//            }
+//        }
     }
     private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
 
