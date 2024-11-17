@@ -354,7 +354,6 @@ public class Main {
                     break;
             }
         }
-
         // Load the RDB file
         RdbParser.loadRDB(dir, dbfilename);
 
