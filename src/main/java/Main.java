@@ -248,14 +248,14 @@ class ClientHandler extends Thread {
                                 }
                                 break;
                             case "SET":
-                                if(isReplicaConnection){
-                                    System.out.println("replica set");
-                                    handleSetCommand(commandParts,null);
-                                }
-                                else{
+//                                if(isReplicaConnection){
+//                                    System.out.println("replica set");
+//                                    handleSetCommand(commandParts,null);
+//                                }
+//                                else{
                                     System.out.println("master set");
                                     handleSetCommand(commandParts,out);
-                                }
+//                                }
                                 break;
                             case "GET":
                                 handleGetCommand(commandParts, out);
