@@ -506,7 +506,7 @@ public class Main {
                 System.out.println("Failed to parse SET command key or value");
                 break;
             }
-
+            ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value,-1));
             System.out.println("Received SET command: " + key + " -> " + value);
             // Update the key-value store
             // keyValueStore.put(key, value); // Implement keyValueStore logic as needed
