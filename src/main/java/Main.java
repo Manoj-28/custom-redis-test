@@ -447,6 +447,7 @@ public class Main {
                 String inputLine = in.readLine();
                 if (inputLine == null) break;
 
+
                 if (inputLine.startsWith("*")) {
                     String[] commandParts = ClientHandler.parseRespCommand(in, inputLine);
                     if (commandParts != null && commandParts.length > 0) {
