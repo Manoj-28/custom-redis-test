@@ -394,9 +394,7 @@ public class Main {
             }
 
             // Step 2: Send REPLCONF listening-port
-            String replConfListeningPort = String.format(
-                    "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%d\r\n", replicaPort
-            );
+            String replConfListeningPort = String.format("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%d\r\n", replicaPort);
             out.write(replConfListeningPort.getBytes());
             out.flush();
             System.out.println("Sent REPLCONF listening-port to master");
@@ -427,61 +425,44 @@ public class Main {
             String psyncResponse = in.readLine();
             if (psyncResponse != null && psyncResponse.startsWith("+FULLRESYNC")) {
                 System.out.println("Received FULLRESYNC from master: " + psyncResponse);
-                // Skip RDB dump
                 skipRdbFile(in);
+                System.out.println("Finished skipping RDB file.");
             } else {
                 System.out.println("Unexpected response to PSYNC: " + psyncResponse);
-                return;
             }
 
-            // Step 5: Process commands from the master
-            String command;
-            while ((command = in.readLine()) != null) {
-                if (command.startsWith("*")) {
-                    // Parse and handle the SET command
-                    handleIncomingSetCommand(in, command);
-                }
-            }
+            // Step 5: Process subsequent SET commands from the master
+            processSetCommands(in);
+
         } catch (IOException e) {
             System.out.println("IOException when connecting to master: " + e.getMessage());
         }
     }
 
     private static void skipRdbFile(BufferedReader in) throws IOException {
+        // Skip the RDB file data sent by the master
         System.out.println("Skipping RDB file...");
-        // RDB files are usually binary and may not be read line-by-line.
-        // We can skip reading it by consuming lines until the end of the RDB dump.
-        // In practice, this would involve more sophisticated logic to skip binary data.
-        while (true) {
-            String line = in.readLine();
-            if (line == null || line.equals("EOF")) { // "EOF" here is a placeholder for end-of-RDB marker
-                System.out.println("Finished skipping RDB file.");
-                break;
+        // Read until the end of RDB file (for simplicity, you might need to adjust based on actual protocol)
+        int rdbFileSize = Integer.parseInt(in.readLine().substring(1)); // "$<size>"
+        long ignore = in.skip(rdbFileSize); // Skip RDB file bytes
+    }
+
+    private static void processSetCommands(BufferedReader in) throws IOException {
+        System.out.println("Processing SET commands from master...");
+        String command;
+        while ((command = in.readLine()) != null) {
+            // Parse and handle the SET command
+            if (command.startsWith("*3")) {
+                in.readLine(); // "$3\r\nSET\r\n"
+                String key = in.readLine(); // "$<key length>\r\n<key>\r\n"
+                in.readLine(); // "$<value length>\r\n"
+                String value = in.readLine(); // "<value>\r\n"
+                System.out.println("Received SET command: " + key + " -> " + value);
+                // Update the key-value store
+                // keyValueStore.put(key, value); // Implement keyValueStore logic as needed
             }
         }
     }
 
-    private static void handleIncomingSetCommand(BufferedReader in, String firstLine) throws IOException {
-        // Parse the SET command using the RESP protocol
-        String[] commandParts = parseRespCommand(in, firstLine);
-        if (commandParts.length >= 3 && "SET".equalsIgnoreCase(commandParts[0])) {
-            String key = commandParts[1];
-            String value = commandParts[2];
-            // Update the KeyValueStore with the new value
-            ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value, -1));
-            System.out.printf("Updated KeyValueStore: SET %s %s%n", key, value);
-        }
-    }
-
-    private static String[] parseRespCommand(BufferedReader in, String firstLine) throws IOException {
-        int numElements = Integer.parseInt(firstLine.substring(1));
-        String[] commandParts = new String[numElements];
-
-        for (int i = 0; i < numElements; i++) {
-            in.readLine(); // Skip the length line
-            commandParts[i] = in.readLine();
-        }
-        return commandParts;
-    }
 
 }
