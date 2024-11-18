@@ -68,7 +68,7 @@ class ClientHandler extends Thread {
         out.write(response.toString().getBytes());
     }
 
-    static String[] parseRespCommand(BufferedReader reader, String firstLine) throws IOException{
+    private String[] parseRespCommand(BufferedReader reader, String firstLine) throws IOException{
         int numElements = Integer.parseInt(firstLine.substring(1));
         String[] commandParts = new String[numElements];
 
@@ -83,11 +83,9 @@ class ClientHandler extends Thread {
         return commandParts;
     }
 
-    static void handleSetCommand(String[] commandParts, OutputStream out) throws IOException {
+    private void handleSetCommand(String[] commandParts, OutputStream out) throws IOException {
         if (commandParts.length < 3) {
-            if(out!=null){
-                out.write("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
-            }
+            out.write("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
             return;
         }
         String key = commandParts[1];
@@ -100,18 +98,14 @@ class ClientHandler extends Thread {
                 expiryTime = System.currentTimeMillis() + expiryInMilliseconds;
             }
             catch (NumberFormatException e){
-                if(out!=null){
-                    out.write("-ERR invalid PX argument\r\n".getBytes());
-                }
+                out.write("-ERR invalid PX argument\r\n".getBytes());
                 return;
             }
         }
 
         KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));
 
-        if(out!=null){
-            out.write("+OK\r\n".getBytes());
-        }
+        out.write("+OK\r\n".getBytes());
 
         String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
 
@@ -126,7 +120,7 @@ class ClientHandler extends Thread {
             }
         }
     }
-    static void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
+    private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
 
         if(commandParts.length < 2){
             out.write("-ERR wrong number of arguments for 'GET' command\r\n".getBytes());
@@ -248,14 +242,7 @@ class ClientHandler extends Thread {
                                 }
                                 break;
                             case "SET":
-                                if(isReplicaConnection){
-                                    System.out.println("replica set");
-                                    handleSetCommand(commandParts,null);
-                                }
-                                else{
-                                    System.out.println("master set");
-                                    handleSetCommand(commandParts,out);
-                                }
+                                handleSetCommand(commandParts,out);
                                 break;
                             case "GET":
                                 handleGetCommand(commandParts, out);
@@ -354,6 +341,7 @@ public class Main {
                     break;
             }
         }
+
         // Load the RDB file
         RdbParser.loadRDB(dir, dbfilename);
 
@@ -365,13 +353,7 @@ public class Main {
             final String finalMasterHost = masterHost;
             final int finalMasterPort = masterPort;
             int finalReplicaPort = port;
-            new Thread(() -> {
-                try {
-                    connectToMaster(finalMasterHost, finalMasterPort, finalReplicaPort);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }).start();
+            new Thread(() -> connectToMaster(finalMasterHost, finalMasterPort, finalReplicaPort)).start();
         }
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
@@ -392,12 +374,14 @@ public class Main {
         }
     }
 
-    public static void connectToMaster(String masterHost, int masterPort, int replicaPort) throws IOException {
-        try(Socket masterSocket = new Socket(masterHost,masterPort);
-            OutputStream out = masterSocket.getOutputStream();
-            BufferedReader in = new BufferedReader(new InputStreamReader(masterSocket.getInputStream()))) {
+    public static void connectToMaster(String masterHost, int masterPort, int replicaPort) {
+        try (Socket masterSocket = new Socket(masterHost, masterPort);
+             OutputStream out = masterSocket.getOutputStream();
+             BufferedReader in = new BufferedReader(new InputStreamReader(masterSocket.getInputStream()))) {
 
             System.out.println("Connected to master at " + masterHost + ":" + masterPort);
+
+            // Step 1: Send PING command
             String pingCommand = "*1\r\n$4\r\nPING\r\n";
             out.write(pingCommand.getBytes());
             out.flush();
@@ -409,7 +393,10 @@ public class Main {
                 return;
             }
 
-            String replConfListeningPort = String.format("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%d\r\n", replicaPort);
+            // Step 2: Send REPLCONF listening-port
+            String replConfListeningPort = String.format(
+                    "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%d\r\n", replicaPort
+            );
             out.write(replConfListeningPort.getBytes());
             out.flush();
             System.out.println("Sent REPLCONF listening-port to master");
@@ -420,6 +407,7 @@ public class Main {
                 return;
             }
 
+            // Step 3: Send REPLCONF capa psync2
             String replConfCapa = "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n";
             out.write(replConfCapa.getBytes());
             out.flush();
@@ -430,6 +418,7 @@ public class Main {
                 System.out.println("Unexpected response to REPLCONF capa psync2: " + replConfCapaResponse);
             }
 
+            // Step 4: Send PSYNC command
             String psyncCommand = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n";
             out.write(psyncCommand.getBytes());
             out.flush();
@@ -438,46 +427,61 @@ public class Main {
             String psyncResponse = in.readLine();
             if (psyncResponse != null && psyncResponse.startsWith("+FULLRESYNC")) {
                 System.out.println("Received FULLRESYNC from master: " + psyncResponse);
+                // Skip RDB dump
+                skipRdbFile(in);
             } else {
                 System.out.println("Unexpected response to PSYNC: " + psyncResponse);
+                return;
             }
 
-            String masterRead;
-            while (true) {
-                String inputLine = in.readLine();
-                if (inputLine == null) break;
-
-
-                if (inputLine.startsWith("*")) {
-                    String[] commandParts = ClientHandler.parseRespCommand(in, inputLine);
-                    if (commandParts != null && commandParts.length > 0) {
-                        String command = commandParts[0].toUpperCase();
-
-                        switch (command) {
-                            case "PING":
-                                out.write("+PONG\r\n".getBytes());
-                                break;
-                            case "ECHO":
-                                if (commandParts.length > 1) {
-                                    String message = commandParts[1];
-                                    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
-                                }
-                                break;
-                            case "SET":
-                                ClientHandler.handleSetCommand(commandParts, null);
-                                break;
-                            case "GET":
-                                ClientHandler.handleGetCommand(commandParts, out);
-                                break;
-                            default:
-                                System.out.println("Invalid command");
-                        }
-                    }
+            // Step 5: Process commands from the master
+            String command;
+            while ((command = in.readLine()) != null) {
+                if (command.startsWith("*")) {
+                    // Parse and handle the SET command
+                    handleIncomingSetCommand(in, command);
                 }
             }
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             System.out.println("IOException when connecting to master: " + e.getMessage());
         }
     }
+
+    private static void skipRdbFile(BufferedReader in) throws IOException {
+        System.out.println("Skipping RDB file...");
+        // RDB files are usually binary and may not be read line-by-line.
+        // We can skip reading it by consuming lines until the end of the RDB dump.
+        // In practice, this would involve more sophisticated logic to skip binary data.
+        while (true) {
+            String line = in.readLine();
+            if (line == null || line.equals("EOF")) { // "EOF" here is a placeholder for end-of-RDB marker
+                System.out.println("Finished skipping RDB file.");
+                break;
+            }
+        }
+    }
+
+    private static void handleIncomingSetCommand(BufferedReader in, String firstLine) throws IOException {
+        // Parse the SET command using the RESP protocol
+        String[] commandParts = parseRespCommand(in, firstLine);
+        if (commandParts.length >= 3 && "SET".equalsIgnoreCase(commandParts[0])) {
+            String key = commandParts[1];
+            String value = commandParts[2];
+            // Update the KeyValueStore with the new value
+            ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value, -1));
+            System.out.printf("Updated KeyValueStore: SET %s %s%n", key, value);
+        }
+    }
+
+    private static String[] parseRespCommand(BufferedReader in, String firstLine) throws IOException {
+        int numElements = Integer.parseInt(firstLine.substring(1));
+        String[] commandParts = new String[numElements];
+
+        for (int i = 0; i < numElements; i++) {
+            in.readLine(); // Skip the length line
+            commandParts[i] = in.readLine();
+        }
+        return commandParts;
+    }
+
 }
