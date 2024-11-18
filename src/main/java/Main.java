@@ -455,6 +455,7 @@ public class Main {
                     break;
                 }
             } else {
+                System.out.println("char: " + ch);
                 sizeStringBuilder.append((char) ch);
             }
         }
@@ -465,6 +466,7 @@ public class Main {
         int bytesRead;
         int bytesToSkip = rdbFileSize;
         while (bytesToSkip > 0 && (bytesRead = in.read(buffer, 0, Math.min(buffer.length, bytesToSkip))) != -1) {
+            System.out.println(bytesToSkip);
             bytesToSkip -= bytesRead;
         }
         System.out.println("Finished skipping RDB file.");
