@@ -425,7 +425,6 @@ public class Main {
             String psyncResponse = reader.readLine();
             if (psyncResponse != null && psyncResponse.startsWith("+FULLRESYNC")) {
                 System.out.println("Received FULLRESYNC from master: " + psyncResponse);
-//                skipRdbFile(in);  // Skip RDB file using InputStream
                 System.out.println("Finished skipping RDB file.");
             } else {
                 System.out.println("Unexpected response to PSYNC: " + psyncResponse);
@@ -433,6 +432,7 @@ public class Main {
             }
 
             // Step 5: Process subsequent SET commands from the master
+            skipRdbFile(in);  // Skip RDB file using InputStream
             processSetCommands(reader);
 
         } catch (IOException e) {
