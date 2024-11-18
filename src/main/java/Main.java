@@ -449,16 +449,20 @@ public class Main {
         StringBuilder sizeStringBuilder = new StringBuilder();
         int ch;
         // Read until we get the \r\n after the $<size>
-        while ((ch = in.read()) != -1) {
-            if (ch == '\r') {
-                if (in.read() == '\n') {
-                    break;
-                }
-            } else {
-                System.out.println("char: " + ch);
-                sizeStringBuilder.append((char) ch);
-            }
-        }
+//        while ((ch = in.read()) != -1) {
+//            if (ch == '\r') {
+//                if (in.read() == '\n') {
+//                    break;
+//                }
+//            } else {
+//                System.out.println("char: " + ch);
+//                sizeStringBuilder.append((char) ch);
+//            }
+//        }
+        ch = in.read();
+        System.out.println("ch1: " + ch);
+        ch = in.read();
+        System.out.println("ch2: " + ch);
 
         // Step 2: Parse the size and skip the bytes
         int rdbFileSize = Integer.parseInt(sizeStringBuilder.toString());
