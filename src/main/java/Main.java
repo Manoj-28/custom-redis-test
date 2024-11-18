@@ -486,6 +486,7 @@ public class Main {
         while (true) {
             command = in.readLine();
             if(command == null) break;
+            System.out.println("command: " + command);
             // Parse and handle the SET command
             if (command.startsWith("*3")) {
                 in.readLine(); // "$3\r\nSET\r\n"
