@@ -460,9 +460,9 @@ public class Main {
 //            }
 //        }
         ch = in.read();
-        System.out.println("ch1: " + ch);
+        System.out.println("ch1: " + (char)ch);
         ch = in.read();
-        System.out.println("ch2: " + ch);
+        System.out.println("ch2: " + (char)ch);
 
         // Step 2: Parse the size and skip the bytes
         int rdbFileSize = Integer.parseInt(sizeStringBuilder.toString());
