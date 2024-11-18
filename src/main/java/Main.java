@@ -483,7 +483,9 @@ public class Main {
     private static void processSetCommands(BufferedReader in) throws IOException {
         System.out.println("Processing SET commands from master...");
         String command;
-        while ((command = in.readLine()) != null) {
+        while (true) {
+            command = in.readLine();
+            if(command == null) break;
             // Parse and handle the SET command
             if (command.startsWith("*3")) {
                 in.readLine(); // "$3\r\nSET\r\n"
