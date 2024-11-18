@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Base64;
@@ -377,7 +374,8 @@ public class Main {
     public static void connectToMaster(String masterHost, int masterPort, int replicaPort) {
         try (Socket masterSocket = new Socket(masterHost, masterPort);
              OutputStream out = masterSocket.getOutputStream();
-             BufferedReader in = new BufferedReader(new InputStreamReader(masterSocket.getInputStream()))) {
+             InputStream in = masterSocket.getInputStream();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {  // Use BufferedReader to read lines
 
             System.out.println("Connected to master at " + masterHost + ":" + masterPort);
 
@@ -387,7 +385,7 @@ public class Main {
             out.flush();
             System.out.println("Sent PING to master");
 
-            String pingResponse = in.readLine();
+            String pingResponse = reader.readLine();  // Use BufferedReader to read the response line
             if (!"+PONG".equals(pingResponse)) {
                 System.out.println("Unexpected response to PING: " + pingResponse);
                 return;
@@ -399,7 +397,7 @@ public class Main {
             out.flush();
             System.out.println("Sent REPLCONF listening-port to master");
 
-            String replConfListeningPortResponse = in.readLine();
+            String replConfListeningPortResponse = reader.readLine();
             if (!"+OK".equals(replConfListeningPortResponse)) {
                 System.out.println("Unexpected response to REPLCONF listening-port: " + replConfListeningPortResponse);
                 return;
@@ -411,9 +409,10 @@ public class Main {
             out.flush();
             System.out.println("Sent REPLCONF capa psync2 to master");
 
-            String replConfCapaResponse = in.readLine();
+            String replConfCapaResponse = reader.readLine();
             if (!"+OK".equals(replConfCapaResponse)) {
                 System.out.println("Unexpected response to REPLCONF capa psync2: " + replConfCapaResponse);
+                return;
             }
 
             // Step 4: Send PSYNC command
@@ -422,30 +421,55 @@ public class Main {
             out.flush();
             System.out.println("Sent PSYNC ? -1 to master");
 
-            String psyncResponse = in.readLine();
+            // Read the FULLRESYNC response
+            String psyncResponse = reader.readLine();
             if (psyncResponse != null && psyncResponse.startsWith("+FULLRESYNC")) {
                 System.out.println("Received FULLRESYNC from master: " + psyncResponse);
-                skipRdbFile(in);
+                skipRdbFile(in);  // Skip RDB file using InputStream
                 System.out.println("Finished skipping RDB file.");
             } else {
                 System.out.println("Unexpected response to PSYNC: " + psyncResponse);
+                return;
             }
 
             // Step 5: Process subsequent SET commands from the master
-            processSetCommands(in);
+            processSetCommands(reader);
 
         } catch (IOException e) {
             System.out.println("IOException when connecting to master: " + e.getMessage());
         }
     }
 
-    private static void skipRdbFile(BufferedReader in) throws IOException {
+
+    private static void skipRdbFile(InputStream in) throws IOException {
         // Skip the RDB file data sent by the master
         System.out.println("Skipping RDB file...");
-        // Read until the end of RDB file (for simplicity, you might need to adjust based on actual protocol)
-        int rdbFileSize = Integer.parseInt(in.readLine().substring(1)); // "$<size>"
-        long ignore = in.skip(rdbFileSize); // Skip RDB file bytes
+
+        // Step 1: Read the size of the RDB file
+        StringBuilder sizeStringBuilder = new StringBuilder();
+        int ch;
+        // Read until we get the \r\n after the $<size>
+        while ((ch = in.read()) != -1) {
+            if (ch == '\r') {
+                if (in.read() == '\n') {
+                    break;
+                }
+            } else {
+                sizeStringBuilder.append((char) ch);
+            }
+        }
+
+        // Step 2: Parse the size and skip the bytes
+        int rdbFileSize = Integer.parseInt(sizeStringBuilder.toString());
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        int bytesToSkip = rdbFileSize;
+        while (bytesToSkip > 0 && (bytesRead = in.read(buffer, 0, Math.min(buffer.length, bytesToSkip))) != -1) {
+            bytesToSkip -= bytesRead;
+        }
+        System.out.println("Finished skipping RDB file.");
     }
+
 
     private static void processSetCommands(BufferedReader in) throws IOException {
         System.out.println("Processing SET commands from master...");
