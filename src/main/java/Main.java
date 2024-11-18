@@ -432,8 +432,8 @@ public class Main {
             }
 
             // Step 5: Process subsequent SET commands from the master
-            skipRdbFile(in);  // Skip RDB file using InputStream
-            processSetCommands(reader);
+//            skipRdbFile(in);  // Skip RDB file using InputStream
+            processSetCommands(in);
 
         } catch (IOException e) {
             System.out.println("IOException when connecting to master: " + e.getMessage());
@@ -480,25 +480,86 @@ public class Main {
     }
 
 
-    private static void processSetCommands(BufferedReader in) throws IOException {
+    private static void processSetCommands(InputStream in) throws IOException {
         System.out.println("Processing SET commands from master...");
-        String command;
+
         while (true) {
-            command = in.readLine();
-            if(command == null) break;
-            System.out.println("command: " + command);
-            // Parse and handle the SET command
-            if (command.startsWith("*3")) {
-                in.readLine(); // "$3\r\nSET\r\n"
-                String key = in.readLine(); // "$<key length>\r\n<key>\r\n"
-                in.readLine(); // "$<value length>\r\n"
-                String value = in.readLine(); // "<value>\r\n"
-                System.out.println("Received SET command: " + key + " -> " + value);
-                // Update the key-value store
-                // keyValueStore.put(key, value); // Implement keyValueStore logic as needed
+            // Read the length of the RESP command array
+            int commandArrayLength = readIntFromRESP(in);
+            if (commandArrayLength != 3) {
+                System.out.println("Unexpected command array length: " + commandArrayLength);
+                break;
             }
+
+            // Read and validate the SET command
+            String command = readBulkStringFromRESP(in);
+            if (!"SET".equals(command)) {
+                System.out.println("Unexpected command: " + command);
+                break;
+            }
+
+            // Read the key and value
+            String key = readBulkStringFromRESP(in);
+            String value = readBulkStringFromRESP(in);
+
+            if (key == null || value == null) {
+                System.out.println("Failed to parse SET command key or value");
+                break;
+            }
+
+            System.out.println("Received SET command: " + key + " -> " + value);
+            // Update the key-value store
+            // keyValueStore.put(key, value); // Implement keyValueStore logic as needed
         }
     }
+
+    // Helper method to read an integer from a RESP formatted string
+    private static int readIntFromRESP(InputStream in) throws IOException {
+        if (in.read() != '*') {
+            throw new IOException("Expected '*' at the beginning of array length in RESP format");
+        }
+        return Integer.parseInt(readLineFromRESP(in));
+    }
+
+    // Helper method to read a bulk string from RESP format
+    private static String readBulkStringFromRESP(InputStream in) throws IOException {
+        if (in.read() != '$') {
+            throw new IOException("Expected '$' at the beginning of bulk string in RESP format");
+        }
+        int length = Integer.parseInt(readLineFromRESP(in));
+        if (length == -1) {
+            return null; // Null bulk string
+        }
+
+        byte[] buffer = new byte[length];
+        int bytesRead = in.read(buffer);
+        if (bytesRead != length) {
+            throw new IOException("Failed to read the expected length of the bulk string");
+        }
+
+        // Consume the trailing "\r\n"
+        in.read();
+        in.read();
+
+        return new String(buffer);
+    }
+
+    // Helper method to read a line ending with "\r\n" from RESP format
+    private static String readLineFromRESP(InputStream in) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        int c;
+        while ((c = in.read()) != -1) {
+            if (c == '\r') {
+                if (in.read() == '\n') {
+                    break;
+                }
+                throw new IOException("Expected '\\n' after '\\r' in RESP format");
+            }
+            sb.append((char) c);
+        }
+        return sb.toString();
+    }
+
 
 
 }
