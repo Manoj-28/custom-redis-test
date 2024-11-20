@@ -362,7 +362,7 @@ public class Main {
             serverSocket.setReuseAddress(true);
             System.out.println("Server started on port " + port + ", waiting for connections...");
 
-            latch.wait();
+            latch.await();
 
             while (true) {
                 // Accept the client connection
