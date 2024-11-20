@@ -291,7 +291,7 @@ class ClientHandler extends Thread {
 
 public class Main {
 
-    private static final CountDownLatch latch = new CountDownLatch(1);
+    private static final CountDownLatch latch = new CountDownLatch(5);
 
     public static void main(String[] args) {
         int port = 6379;  // Default port
