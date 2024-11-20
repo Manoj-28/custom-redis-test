@@ -453,6 +453,7 @@ public class Main {
         while (true) {
             // Read the length of the RESP command array
             int commandArrayLength = readIntFromRESP(in);
+            if(commandArrayLength == 0) break;
             if (commandArrayLength != 3) {
                 System.out.println("Unexpected command array length: " + commandArrayLength);
                 break;
