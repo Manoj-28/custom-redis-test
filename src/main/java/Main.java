@@ -362,8 +362,8 @@ public class Main {
             serverSocket.setReuseAddress(true);
             System.out.println("Server started on port " + port + ", waiting for connections...");
 
-            latch.countDown();
-            latch.await();
+//            latch.countDown();
+//            latch.await();
 
             while (true) {
                 // Accept the client connection
@@ -374,7 +374,7 @@ public class Main {
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
                 clientHandler.start();  // Start the thread for this client
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
         }
     }
