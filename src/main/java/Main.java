@@ -362,6 +362,7 @@ public class Main {
             serverSocket.setReuseAddress(true);
             System.out.println("Server started on port " + port + ", waiting for connections...");
 
+            latch.countDown();
             latch.await();
 
             while (true) {
@@ -437,8 +438,6 @@ public class Main {
                 System.out.println("Unexpected response to PSYNC: " + psyncResponse);
                 return;
             }
-
-            latch.countDown();
 
             processSetCommands(in);
 
