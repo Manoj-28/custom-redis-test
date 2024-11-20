@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+
 
 class ValueWithExpiry{
     String value;
@@ -288,6 +290,9 @@ class ClientHandler extends Thread {
 
 
 public class Main {
+
+    private static final CountDownLatch latch = new CountDownLatch(1);
+
     public static void main(String[] args) {
         int port = 6379;  // Default port
         String dir = "/tmp/redis-files";  // Default directory
@@ -357,6 +362,8 @@ public class Main {
             serverSocket.setReuseAddress(true);
             System.out.println("Server started on port " + port + ", waiting for connections...");
 
+            latch.wait();
+
             while (true) {
                 // Accept the client connection
                 Socket clientSocket = serverSocket.accept();
@@ -366,7 +373,7 @@ public class Main {
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
                 clientHandler.start();  // Start the thread for this client
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             System.out.println("IOException: " + e.getMessage());
         }
     }
@@ -431,52 +438,13 @@ public class Main {
                 return;
             }
 
-            // Step 5: Process subsequent SET commands from the master
-//            skipRdbFile(in);  // Skip RDB file using InputStream
+            latch.countDown();
+
             processSetCommands(in);
 
         } catch (IOException e) {
             System.out.println("IOException when connecting to master: " + e.getMessage());
         }
-    }
-
-
-    private static void skipRdbFile(InputStream in) throws IOException {
-        // Skip the RDB file data sent by the master
-        System.out.println("Skipping RDB file...");
-
-        // Step 1: Read the size of the RDB file
-        StringBuilder sizeStringBuilder = new StringBuilder();
-        int ch;
-        // Read until we get the \r\n after the $<size>
-//        while ((ch = in.read()) != -1) {
-//            if (ch == '\r') {
-//                if (in.read() == '\n') {
-//                    break;
-//                }
-//            } else {
-//                System.out.println("char: " + ch);
-//                sizeStringBuilder.append((char) ch);
-//            }
-//        }
-//        ch = in.read();
-//        System.out.println("ch1: " + (char)ch);
-//        ch = in.read();
-//        System.out.println("ch2: " + (char)ch);
-        while((ch = in.read()) != -1){
-            System.out.println("ch: " + (char)ch);
-        }
-
-        // Step 2: Parse the size and skip the bytes
-        int rdbFileSize = Integer.parseInt(sizeStringBuilder.toString());
-        byte[] buffer = new byte[1024];
-        int bytesRead;
-        int bytesToSkip = rdbFileSize;
-        while (bytesToSkip > 0 && (bytesRead = in.read(buffer, 0, Math.min(buffer.length, bytesToSkip))) != -1) {
-            System.out.println(bytesToSkip);
-            bytesToSkip -= bytesRead;
-        }
-        System.out.println("Finished skipping RDB file.");
     }
 
 
