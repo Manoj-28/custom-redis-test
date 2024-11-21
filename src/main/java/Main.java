@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.Buffer;
 import java.util.Base64;
 import java.util.Map;
 import java.util.HashMap;
@@ -439,7 +440,7 @@ public class Main {
                 return;
             }
 
-            processSetCommands(in);
+            processSetCommands(reader);
 
         } catch (IOException e) {
             System.out.println("IOException when connecting to master: " + e.getMessage());
@@ -447,12 +448,12 @@ public class Main {
     }
 
 
-    private static void processSetCommands(InputStream in) throws IOException {
+    private static void processSetCommands(BufferedReader reader) throws IOException {
         System.out.println("Processing SET commands from master...");
 
         while (true) {
             // Read the length of the RESP command array
-            int commandArrayLength = readIntFromRESP(in);
+            int commandArrayLength = readIntFromRESP(reader);
             if(commandArrayLength == 0) break;
             if (commandArrayLength != 3) {
                 System.out.println("Unexpected command array length: " + commandArrayLength);
@@ -460,15 +461,15 @@ public class Main {
             }
 
             // Read and validate the SET command
-            String command = readBulkStringFromRESP(in);
+            String command = readBulkStringFromRESP(reader);
             if (!"SET".equals(command)) {
                 System.out.println("Unexpected command: " + command);
                 break;
             }
 
             // Read the key and value
-            String key = readBulkStringFromRESP(in);
-            String value = readBulkStringFromRESP(in);
+            String key = readBulkStringFromRESP(reader);
+            String value = readBulkStringFromRESP(reader);
 
             if (key == null || value == null) {
                 System.out.println("Failed to parse SET command key or value");
@@ -482,49 +483,34 @@ public class Main {
     }
 
     // Helper method to read an integer from a RESP formatted string
-    private static int readIntFromRESP(InputStream in) throws IOException {
-        if (in.read() != '*') {
+    private static int readIntFromRESP(BufferedReader reader) throws IOException {
+        String line = reader.readLine();
+        if (line == null || line.charAt(0) != '*') {
             throw new IOException("Expected '*' at the beginning of array length in RESP format");
         }
-        return Integer.parseInt(readLineFromRESP(in));
+        return Integer.parseInt(line.substring(1));
     }
 
     // Helper method to read a bulk string from RESP format
-    private static String readBulkStringFromRESP(InputStream in) throws IOException {
-        if (in.read() != '$') {
+    private static String readBulkStringFromRESP(BufferedReader reader) throws IOException {
+        String line = reader.readLine();
+        if (line == null || line.charAt(0) != '$') {
             throw new IOException("Expected '$' at the beginning of bulk string in RESP format");
         }
-        int length = Integer.parseInt(readLineFromRESP(in));
+        int length = Integer.parseInt(line.substring(1));
         if (length == -1) {
             return null; // Null bulk string
         }
 
-        byte[] buffer = new byte[length];
-        int bytesRead = in.read(buffer);
-        if (bytesRead != length) {
+        char[] buffer = new char[length];
+        int charsRead = reader.read(buffer,0,length);
+        if (charsRead != length) {
             throw new IOException("Failed to read the expected length of the bulk string");
         }
 
-        // Consume the trailing "\r\n"
-        in.read();
-        in.read();
+        reader.readLine();   //consume the tailing "\r\n"
 
         return new String(buffer);
     }
 
-    // Helper method to read a line ending with "\r\n" from RESP format
-    private static String readLineFromRESP(InputStream in) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        int c;
-        while ((c = in.read()) != -1) {
-            if (c == '\r') {
-                if (in.read() == '\n') {
-                    break;
-                }
-                throw new IOException("Expected '\\n' after '\\r' in RESP format");
-            }
-            sb.append((char) c);
-        }
-        return sb.toString();
-    }
 }
