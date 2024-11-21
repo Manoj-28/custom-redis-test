@@ -449,7 +449,11 @@ public class Main {
                 System.out.println("Values Skipped " + skipval);
             }
             System.out.println("read: " + readVal);
-            processSetCommands(reader);
+            int val;
+            while(true){
+                System.out.println("char: " + (char)reader.read());
+            }
+//            processSetCommands(reader);
 
         } catch (IOException e) {
             System.out.println("IOException when connecting to master: " + e.getMessage());
