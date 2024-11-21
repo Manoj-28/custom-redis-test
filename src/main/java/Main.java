@@ -439,19 +439,20 @@ public class Main {
                 System.out.println("Unexpected response to PSYNC: " + psyncResponse);
                 return;
             }
-//            String readVal = reader.readLine();
-//            int length = Integer.parseInt(readVal.substring(1));
-//            long skipval = reader.skip(length);
-//            if(skipval != length){
-//                System.out.println("Unable to skip " + length + " chars");
-//            }
-//            else{
-//                System.out.println("Values Skipped " + skipval);
-//            }
-//            System.out.println("read: " + readVal);
+            String readVal = reader.readLine();
+            int length = Integer.parseInt(readVal.substring(1));
+            long skipval = reader.skip(length);
+            if(skipval != length){
+                System.out.println("Unable to skip " + length + " chars");
+            }
+            else{
+                System.out.println("Values Skipped " + skipval);
+            }
+            System.out.println("read: " + readVal);
 //            int val;
             while(true){
-                System.out.println("char: " + (char)reader.read());
+                char val = (char)reader.read();
+                System.out.println("char: " +val );
             }
 //            processSetCommands(reader);
 
