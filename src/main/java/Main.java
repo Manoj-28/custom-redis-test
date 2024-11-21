@@ -450,9 +450,37 @@ public class Main {
             }
             System.out.println("read: " + readVal);
 //            int val;
-            while(true){
-                char val = (char)reader.read();
-                System.out.println("char: " +val );
+//            while(true){
+//                char val = (char)reader.read();
+//                System.out.println("char: " +val );
+//            }
+            while (true){
+                String inputLine = reader.readLine();
+                if(inputLine==null) break;
+
+                if(inputLine.startsWith("*")){
+                    String[] commandParts = parseMasterRespCommand(reader, inputLine);
+                    if(commandParts != null && commandParts.length > 0){
+                        String command = commandParts[0].toUpperCase();
+
+                        switch (command){
+                            case "PING":
+                                out.write("+PONG\r\n".getBytes());
+                                break;
+                            case "ECHO":
+                                if(commandParts.length > 1){
+                                    String message = commandParts[1];
+                                    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
+                                }
+                                break;
+                            case "SET":
+                                processSetCommands(commandParts);
+                                break;
+                            default:
+                                out.write("-ERR unknown command\r\n".);
+                        }
+                    }
+                }
             }
 //            processSetCommands(reader);
 
@@ -462,41 +490,31 @@ public class Main {
     }
 
 
-    private static void processSetCommands(BufferedReader reader) throws IOException {
-        System.out.println("Processing SET commands from master...");
-
-        while (true) {
-            // Read the length of the RESP command array
-            int commandArrayLength = readIntFromRESP(reader);
-            if(commandArrayLength == 0) break;
-            if (commandArrayLength != 3) {
-                System.out.println("Unexpected command array length: " + commandArrayLength);
-                break;
-            }
-
-            // Read and validate the SET command
-            String command = readBulkStringFromRESP(reader);
-            if (!"SET".equals(command)) {
-                System.out.println("Unexpected command: " + command);
-                break;
-            }
-
-            // Read the key and value
-            String key = readBulkStringFromRESP(reader);
-            String value = readBulkStringFromRESP(reader);
-
-            if (key == null || value == null) {
-                System.out.println("Failed to parse SET command key or value");
-                break;
-            }
-            ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value,-1));
-            System.out.println("Received SET command: " + key + " -> " + value);
-            // Update the key-value store
-            // keyValueStore.put(key, value); // Implement keyValueStore logic as needed
+    private static void processSetCommands(String[] commandParts) throws IOException {
+        if (commandParts.length < 3) {
+            System.out.println("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
+            return;
         }
+        String key = commandParts[1];
+        String value = commandParts[2];
+        long expiryTime = -1;
+
+        if(commandParts.length >= 5 && commandParts[3].equalsIgnoreCase("PX")){
+            try{
+                long expiryInMilliseconds = Long.parseLong(commandParts[4]);
+                expiryTime = System.currentTimeMillis() + expiryInMilliseconds;
+            }
+            catch (NumberFormatException e){
+                System.out.println("-ERR invalid PX argument\r\n".getBytes());
+                return;
+            }
+        }
+
+        ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));// keyValueStore.put(key, value); // Implement keyValueStore logic as needed
+
     }
 
-    private String[] parseMasterRespCommand(BufferedReader reader, String firstLine) throws IOException{
+    private static String[] parseMasterRespCommand(BufferedReader reader, String firstLine) throws IOException{
         int numElements = Integer.parseInt(firstLine.substring(1));
         String[] commandParts = new String[numElements];
 
