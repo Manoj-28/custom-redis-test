@@ -477,7 +477,7 @@ public class Main {
                                 processSetCommands(commandParts);
                                 break;
                             default:
-                                out.write("-ERR unknown command\r\n".);
+                                System.out.println("-ERR unknown command\r\n");
                         }
                     }
                 }
