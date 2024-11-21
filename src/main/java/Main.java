@@ -441,7 +441,7 @@ public class Main {
             }
             String readVal = reader.readLine();
             int length = Integer.parseInt(readVal.substring(1));
-            long skipval = reader.skip(length);
+            long skipval = reader.skip(length-1);
             if(skipval != length){
                 System.out.println("Unable to skip " + length + " chars");
             }
@@ -496,6 +496,20 @@ public class Main {
         }
     }
 
+    private String[] parseMasterRespCommand(BufferedReader reader, String firstLine) throws IOException{
+        int numElements = Integer.parseInt(firstLine.substring(1));
+        String[] commandParts = new String[numElements];
+
+        for(int i=0;i<numElements;i++){
+            String lengthLine = reader.readLine();
+            if(lengthLine.startsWith("$")){
+                String bulkString = reader.readLine();
+                commandParts[i] = bulkString;
+            }
+        }
+        System.out.println("Parsed RESP Command: " + String.join(", ", commandParts));
+        return commandParts;
+    }
     // Helper method to read an integer from a RESP formatted string
     private static int readIntFromRESP(BufferedReader reader) throws IOException {
         String line = reader.readLine();
