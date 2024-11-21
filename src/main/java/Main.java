@@ -439,7 +439,8 @@ public class Main {
                 System.out.println("Unexpected response to PSYNC: " + psyncResponse);
                 return;
             }
-
+            String readVal = reader.readLine();
+            System.out.println("read: " + readVal);
             processSetCommands(reader);
 
         } catch (IOException e) {
