@@ -440,6 +440,14 @@ public class Main {
                 return;
             }
             String readVal = reader.readLine();
+            int length = Integer.parseInt(readVal.substring(1));
+            long skipval = reader.skip(length);
+            if(skipval != length){
+                System.out.println("Unable to skip " + length + " chars");
+            }
+            else{
+                System.out.println("Values Skipped " + skipval);
+            }
             System.out.println("read: " + readVal);
             processSetCommands(reader);
 
