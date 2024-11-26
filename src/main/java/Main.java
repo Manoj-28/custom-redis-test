@@ -24,7 +24,7 @@ class ValueWithExpiry{
 
 // Thread to handle client communication
 class ClientHandler extends Thread {
-    private Socket clientSocket;
+    private final Socket clientSocket;
     public static Map<String, ValueWithExpiry> KeyValueStore = new HashMap<>();
     private static List<Socket> replicas = new CopyOnWriteArrayList<>();
 
@@ -35,6 +35,9 @@ class ClientHandler extends Thread {
     // Hardcoded replication ID and offset
     private static final String REPLICATION_ID = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
     private static final long REPLICATION_OFFSET = 0;
+    private static final Map<Long, Integer> replicaAcknowledgment = new HashMap<>();
+    private static final Object waitLock = 0;
+    private static long currentOffset = 0;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -107,6 +110,9 @@ class ClientHandler extends Thread {
 
         String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
 
+        synchronized (waitLock){
+            replicaAcknowledgment.put(currentOffset,0);
+        }
         for(Socket replicaSocket : replicas){
             try{
                 OutputStream replicaOut = replicaSocket.getOutputStream();
@@ -117,6 +123,7 @@ class ClientHandler extends Thread {
                 System.out.println("Failed to send commands to replica: "  +e.getMessage());
             }
         }
+        currentOffset++;
     }
     private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
 
@@ -179,6 +186,12 @@ class ClientHandler extends Thread {
         }
     }
 
+    private void handleReplicaAck(long offset){
+        synchronized (waitLock){
+            replicaAcknowledgment.computeIfPresent(offset, (key, value) -> value +1);
+            waitLock.notifyAll();
+        }
+    }
     private void handleReplConfCommand(String[] commandParts, OutputStream out) throws IOException{
         if(commandParts.length < 2){
             out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
@@ -223,12 +236,19 @@ class ClientHandler extends Thread {
             int numReplicas = Integer.parseInt(commandParts[1]);
             int timeout = Integer.parseInt(commandParts[2]);
 
-            // Calculate the number of connected replicas
-            int connectedReplicas = replicas.size();
+            long startTime = System.currentTimeMillis();
+            int acknowledged = 0;
 
-            // Return the number of connected replicas
-            out.write(String.format(":%d\r\n", connectedReplicas).getBytes());
-        } catch (NumberFormatException e) {
+            synchronized (waitLock){
+                while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
+                    acknowledged = replicaAcknowledgment.values().stream().mapToInt(Integer::intValue).sum();
+                    if(acknowledged < numReplicas){
+                        waitLock.wait(timeout);
+                    }
+                }
+            }
+            out.write(String.format(":%d\r\n", acknowledged).getBytes());
+        } catch (NumberFormatException | InterruptedException e) {
             out.write("-ERR invalid arguments for 'WAIT' command\r\n".getBytes());
         }
     }
