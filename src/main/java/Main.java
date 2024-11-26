@@ -214,6 +214,13 @@ class ClientHandler extends Thread {
 
         sendEmptyRDBFile(out);
     }
+    private void handleWaitCommand(String[] commandParts, OutputStream out) throws IOException {
+        if (commandParts.length < 3) {
+            out.write("-ERR wrong number of arguments for 'WAIT' command\r\n".getBytes());
+            return;
+        }
+        out.write(":0\r\n".getBytes());
+    }
 
     @Override
     public void run() {
@@ -258,6 +265,9 @@ class ClientHandler extends Thread {
                                 break;
                             case "REPLCONF":
                                 handleReplConfCommand(commandParts,out);
+                                break;
+                            case "WAIT":
+                                handleWaitCommand(commandParts, out);
                                 break;
                             case "PSYNC":
                                 isReplicaConnection = true;
