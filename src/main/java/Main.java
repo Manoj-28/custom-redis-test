@@ -457,6 +457,10 @@ public class Main {
                         String command = commandParts[0].toUpperCase();
 
                         switch (command){
+                            case "PING":
+                                int commandSize = calculateCommandSize(commandParts);
+                                offset += commandSize;
+                                break;
                             case "REPLCONF":
                                 handleReplconfCommand(out, commandParts);
                                 break;
