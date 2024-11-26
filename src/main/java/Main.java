@@ -292,8 +292,6 @@ class ClientHandler extends Thread {
 
 public class Main {
 
-    private static final CountDownLatch latch = new CountDownLatch(1);
-
     public static void main(String[] args) {
         int port = 6379;  // Default port
         String dir = "/tmp/redis-files";  // Default directory
@@ -362,9 +360,6 @@ public class Main {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             serverSocket.setReuseAddress(true);
             System.out.println("Server started on port " + port + ", waiting for connections...");
-
-//            latch.countDown();
-//            latch.await();
 
             while (true) {
                 // Accept the client connection
@@ -449,11 +444,6 @@ public class Main {
                 System.out.println("Values Skipped " + skipval);
             }
             System.out.println("read: " + readVal);
-//            int val;
-//            while(true){
-//                char val = (char)reader.read();
-//                System.out.println("char: " +val );
-//            }
             while (true){
                 String inputLine = reader.readLine();
                 if(inputLine==null) break;
@@ -464,14 +454,8 @@ public class Main {
                         String command = commandParts[0].toUpperCase();
 
                         switch (command){
-                            case "PING":
-                                out.write("+PONG\r\n".getBytes());
-                                break;
-                            case "ECHO":
-                                if(commandParts.length > 1){
-                                    String message = commandParts[1];
-                                    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
-                                }
+                            case "REPLCONF":
+                                handleReplconfCommand(out, commandParts);
                                 break;
                             case "SET":
                                 processSetCommands(commandParts);
@@ -482,13 +466,27 @@ public class Main {
                     }
                 }
             }
-//            processSetCommands(reader);
 
         } catch (IOException e) {
             System.out.println("IOException when connecting to master: " + e.getMessage());
         }
     }
 
+    private static void handleReplconfCommand(OutputStream out, String[] commandParts) throws IOException {
+        if (commandParts.length >= 2) {
+            String subCommand = commandParts[1].toUpperCase();
+            if ("GETACK".equals(subCommand)) {
+                // Respond to REPLCONF GETACK with REPLCONF ACK 0
+                String response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+                out.write(response.getBytes());
+                System.out.println("Sent REPLCONF ACK 0 to master");
+            } else {
+                System.out.println("Unknown REPLCONF subcommand: " + subCommand);
+            }
+        } else {
+            System.out.println("-ERR insufficient arguments for REPLCONF");
+        }
+    }
 
     private static void processSetCommands(String[] commandParts) throws IOException {
         if (commandParts.length < 3) {
@@ -510,8 +508,7 @@ public class Main {
             }
         }
 
-        ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));// keyValueStore.put(key, value); // Implement keyValueStore logic as needed
-
+        ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));
     }
 
     private static String[] parseMasterRespCommand(BufferedReader reader, String firstLine) throws IOException{
@@ -528,35 +525,4 @@ public class Main {
         System.out.println("Parsed RESP Command: " + String.join(", ", commandParts));
         return commandParts;
     }
-    // Helper method to read an integer from a RESP formatted string
-    private static int readIntFromRESP(BufferedReader reader) throws IOException {
-        String line = reader.readLine();
-        if (line == null || line.charAt(0) != '*') {
-            throw new IOException("Expected '*' at the beginning of array length in RESP format");
-        }
-        return Integer.parseInt(line.substring(1));
-    }
-
-    // Helper method to read a bulk string from RESP format
-    private static String readBulkStringFromRESP(BufferedReader reader) throws IOException {
-        String line = reader.readLine();
-        if (line == null || line.charAt(0) != '$') {
-            throw new IOException("Expected '$' at the beginning of bulk string in RESP format");
-        }
-        int length = Integer.parseInt(line.substring(1));
-        if (length == -1) {
-            return null; // Null bulk string
-        }
-
-        char[] buffer = new char[length];
-        int charsRead = reader.read(buffer,0,length);
-        if (charsRead != length) {
-            throw new IOException("Failed to read the expected length of the bulk string");
-        }
-
-        reader.readLine();   //consume the tailing "\r\n"
-
-        return new String(buffer);
-    }
-
 }
