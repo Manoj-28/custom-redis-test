@@ -1,13 +1,11 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.Buffer;
 import java.util.Base64;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 
 
 class ValueWithExpiry{
@@ -219,8 +217,22 @@ class ClientHandler extends Thread {
             out.write("-ERR wrong number of arguments for 'WAIT' command\r\n".getBytes());
             return;
         }
-        out.write(":0\r\n".getBytes());
+
+        try {
+            // Parse the arguments (numreplicas and timeout)
+            int numReplicas = Integer.parseInt(commandParts[1]);
+            int timeout = Integer.parseInt(commandParts[2]);
+
+            // Calculate the number of connected replicas
+            int connectedReplicas = replicas.size();
+
+            // Return the number of connected replicas
+            out.write(String.format(":%d\r\n", connectedReplicas).getBytes());
+        } catch (NumberFormatException e) {
+            out.write("-ERR invalid arguments for 'WAIT' command\r\n".getBytes());
+        }
     }
+
 
     @Override
     public void run() {
