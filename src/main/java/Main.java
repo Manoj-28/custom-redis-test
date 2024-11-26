@@ -292,6 +292,8 @@ class ClientHandler extends Thread {
 
 public class Main {
 
+    private static long offset = 0;
+
     public static void main(String[] args) {
         int port = 6379;  // Default port
         String dir = "/tmp/redis-files";  // Default directory
@@ -299,6 +301,7 @@ public class Main {
         String masterHost="";
         int masterPort=-1;
         boolean isReplica=false;
+
 
         // Parse the command line arguments
         for (int i = 0; i < args.length; i++) {
@@ -476,10 +479,12 @@ public class Main {
         if (commandParts.length >= 2) {
             String subCommand = commandParts[1].toUpperCase();
             if ("GETACK".equals(subCommand)) {
-                // Respond to REPLCONF GETACK with REPLCONF ACK 0
-                String response = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+                String response = String.format("*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%d\r\n", String.valueOf(offset).length(), offset);
                 out.write(response.getBytes());
-                System.out.println("Sent REPLCONF ACK 0 to master");
+                System.out.println("Sent REPLCONF ACK " + offset + " to master");
+                // Calculate the size of the SET command in bytes
+                int commandSize = calculateCommandSize(commandParts);
+                offset += commandSize; // Update the offset
             } else {
                 System.out.println("Unknown REPLCONF subcommand: " + subCommand);
             }
@@ -493,36 +498,51 @@ public class Main {
             System.out.println("-ERR wrong number of arguments for 'SET' command\r\n".getBytes());
             return;
         }
+
+        // Calculate the size of the SET command in bytes
+        int commandSize = calculateCommandSize(commandParts);
+        offset += commandSize; // Update the offset
+
         String key = commandParts[1];
         String value = commandParts[2];
         long expiryTime = -1;
 
-        if(commandParts.length >= 5 && commandParts[3].equalsIgnoreCase("PX")){
-            try{
+        if (commandParts.length >= 5 && commandParts[3].equalsIgnoreCase("PX")) {
+            try {
                 long expiryInMilliseconds = Long.parseLong(commandParts[4]);
                 expiryTime = System.currentTimeMillis() + expiryInMilliseconds;
-            }
-            catch (NumberFormatException e){
+            } catch (NumberFormatException e) {
                 System.out.println("-ERR invalid PX argument\r\n".getBytes());
                 return;
             }
         }
 
-        ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value,expiryTime));
+        ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value, expiryTime));
     }
 
-    private static String[] parseMasterRespCommand(BufferedReader reader, String firstLine) throws IOException{
+    private static String[] parseMasterRespCommand(BufferedReader reader, String firstLine) throws IOException {
         int numElements = Integer.parseInt(firstLine.substring(1));
         String[] commandParts = new String[numElements];
 
-        for(int i=0;i<numElements;i++){
+        for (int i = 0; i < numElements; i++) {
             String lengthLine = reader.readLine();
-            if(lengthLine.startsWith("$")){
+            if (lengthLine.startsWith("$")) {
                 String bulkString = reader.readLine();
                 commandParts[i] = bulkString;
             }
         }
+
         System.out.println("Parsed RESP Command: " + String.join(", ", commandParts));
         return commandParts;
+    }
+
+    private static int calculateCommandSize(String[] commandParts) {
+        int size = 0;
+        size += ("*" + commandParts.length + "\r\n").length();
+        for (String part : commandParts) {
+            size += ("$" + part.length() + "\r\n").length();
+            size += (part + "\r\n").length();
+        }
+        return size;
     }
 }
