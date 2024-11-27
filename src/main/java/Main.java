@@ -186,13 +186,25 @@ class ClientHandler extends Thread {
         }
     }
 
-    private void handleReplicaAck(long offset){
+    static void handleReplicaAck(long offset){
         synchronized (waitLock){
-            replicaAcknowledgment.computeIfPresent(offset, (key, value) -> value +1);
+            replicaAcknowledgment.computeIfPresent(offset,(key,value) -> value+1);
             waitLock.notifyAll();
         }
     }
+
     private void handleReplConfCommand(String[] commandParts, OutputStream out) throws IOException{
+        if(commandParts.length >= 2){
+            String subCommand = commandParts[1].toUpperCase();
+            if("GETACK".equals(subCommand)){
+                long ackOffset = currentOffset;
+                handleReplicaAck(ackOffset);
+                out.write("+OK\r\n".getBytes());
+            }
+            else{
+                out.write("-ERR unknown REPLCONF subcommand\r\n".getBytes());
+            }
+        }
         if(commandParts.length < 2){
             out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
             return;
@@ -504,7 +516,7 @@ public class Main {
                                 offset += commandSize;
                                 break;
                             case "REPLCONF":
-                                handleReplconfCommand(out, commandParts);
+                                handleReplicaReplconfCommand(out, commandParts);
                                 break;
                             case "SET":
                                 processSetCommands(commandParts);
@@ -521,10 +533,11 @@ public class Main {
         }
     }
 
-    private static void handleReplconfCommand(OutputStream out, String[] commandParts) throws IOException {
+    private static void handleReplicaReplconfCommand(OutputStream out, String[] commandParts) throws IOException {
         if (commandParts.length >= 2) {
             String subCommand = commandParts[1].toUpperCase();
             if ("GETACK".equals(subCommand)) {
+                ClientHandler.handleReplicaAck(offset);
                 String response = String.format("*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%d\r\n", String.valueOf(offset).length(), offset);
                 out.write(response.getBytes());
                 System.out.println("Sent REPLCONF ACK " + offset + " to master");
