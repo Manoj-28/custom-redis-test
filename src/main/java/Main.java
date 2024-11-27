@@ -197,21 +197,13 @@ class ClientHandler extends Thread {
         if(commandParts[1].equals("listening-port") || commandParts[1].equals("capa")){
             out.write("+OK\r\n".getBytes());
         }
-        else {
-            out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
-            return;
-        }
-
-        if(commandParts.length >= 2){
-            String subCommand = commandParts[1].toUpperCase();
-            if("GETACK".equals(subCommand)){
+        else if(commandParts[1].equalsIgnoreCase("GETACK")){
                 long ackOffset = currentOffset;
                 handleReplicaAck(ackOffset);
                 out.write("+OK\r\n".getBytes());
-            }
-            else{
-                out.write("-ERR unknown REPLCONF subcommand\r\n".getBytes());
-            }
+        }
+        else {
+            out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
         }
     }
 
