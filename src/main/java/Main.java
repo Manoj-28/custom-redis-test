@@ -205,11 +205,13 @@ class ClientHandler extends Thread {
                 out.write("-ERR unknown REPLCONF subcommand\r\n".getBytes());
             }
         }
-        if(commandParts.length < 2){
+        if(commandParts[1].equals("listening-port") || commandParts[1].equals("capa")){
+            out.write("+OK\r\n".getBytes());
+        }
+        else {
             out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
             return;
         }
-        out.write("+OK\r\n".getBytes());
     }
 
     private byte[] getEmptyRDBFileContent(){
