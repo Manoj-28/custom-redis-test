@@ -251,6 +251,7 @@ class ClientHandler extends Thread {
             synchronized (waitLock){
                 while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
                     acknowledged = replicaAcknowledgment.values().stream().mapToInt(Integer::intValue).sum();
+                    System.out.println("Acknowledged: " + acknowledged);
                     if(acknowledged < numReplicas){
                         waitLock.wait(timeout);
                     }
