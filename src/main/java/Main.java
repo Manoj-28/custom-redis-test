@@ -194,6 +194,14 @@ class ClientHandler extends Thread {
     }
 
     private void handleReplConfCommand(String[] commandParts, OutputStream out) throws IOException{
+        if(commandParts[1].equals("listening-port") || commandParts[1].equals("capa")){
+            out.write("+OK\r\n".getBytes());
+        }
+        else {
+            out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
+            return;
+        }
+
         if(commandParts.length >= 2){
             String subCommand = commandParts[1].toUpperCase();
             if("GETACK".equals(subCommand)){
@@ -204,13 +212,6 @@ class ClientHandler extends Thread {
             else{
                 out.write("-ERR unknown REPLCONF subcommand\r\n".getBytes());
             }
-        }
-        if(commandParts[1].equals("listening-port") || commandParts[1].equals("capa")){
-            out.write("+OK\r\n".getBytes());
-        }
-        else {
-            out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
-            return;
         }
     }
 
