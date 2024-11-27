@@ -37,7 +37,7 @@ class ClientHandler extends Thread {
     private static final long REPLICATION_OFFSET = 0;
     private static final Map<Long, Integer> replicaAcknowledgment = new HashMap<>();
     private static final Object waitLock = 0;
-    private static long currentOffset = 0;
+    static long currentOffset = 0;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -538,7 +538,7 @@ public class Main {
         if (commandParts.length >= 2) {
             String subCommand = commandParts[1].toUpperCase();
             if ("GETACK".equals(subCommand)) {
-                ClientHandler.handleReplicaAck(offset);
+                ClientHandler.handleReplicaAck(ClientHandler.currentOffset);
                 String response = String.format("*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%d\r\n", String.valueOf(offset).length(), offset);
                 out.write(response.getBytes());
                 System.out.println("Sent REPLCONF ACK " + offset + " to master");
@@ -593,7 +593,7 @@ public class Main {
             }
         }
 
-        System.out.println("Client: Parsed RESP Command: " + String.join(", ", commandParts));
+        System.out.println("Replica: Parsed RESP Command: " + String.join(", ", commandParts));
         return commandParts;
     }
 
