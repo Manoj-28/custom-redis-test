@@ -80,7 +80,7 @@ class ClientHandler extends Thread {
                 commandParts[i] = bulkString;
             }
         }
-        System.out.println("Parsed RESP Command: " + String.join(", ", commandParts));
+        System.out.println("Master: Parsed RESP Command: " + String.join(", ", commandParts));
         return commandParts;
     }
 
@@ -589,7 +589,7 @@ public class Main {
             }
         }
 
-        System.out.println("Parsed RESP Command: " + String.join(", ", commandParts));
+        System.out.println("Client: Parsed RESP Command: " + String.join(", ", commandParts));
         return commandParts;
     }
 
