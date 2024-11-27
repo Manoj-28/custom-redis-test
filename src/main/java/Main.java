@@ -109,6 +109,7 @@ class ClientHandler extends Thread {
         out.write("+OK\r\n".getBytes());
 
         String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
+        String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
 
         synchronized (waitLock){
             replicaAcknowledgment.put(currentOffset,0);
@@ -117,6 +118,7 @@ class ClientHandler extends Thread {
             try{
                 OutputStream replicaOut = replicaSocket.getOutputStream();
                 replicaOut.write(respCommand.getBytes());
+                replicaOut.write(ackCommand.getBytes());
                 replicaOut.flush();
             }
             catch (IOException e){
@@ -571,6 +573,7 @@ public class Main {
             }
         }
 
+        //Check this later
         ClientHandler.KeyValueStore.put(key, new ValueWithExpiry(value, expiryTime));
     }
 
