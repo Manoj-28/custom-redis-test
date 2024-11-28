@@ -540,8 +540,8 @@ public class Main {
             if ("GETACK".equals(subCommand)) {
                 ClientHandler.handleReplicaAck(ClientHandler.currentOffset);
                 String response = String.format("*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%d\r\n", String.valueOf(offset).length(), offset);
-                out.write(response.getBytes());
                 System.out.println("Sent REPLCONF ACK " + offset + " to master");
+                out.write(response.getBytes());
                 // Calculate the size of the SET command in bytes
                 int commandSize = calculateCommandSize(commandParts);
                 offset += commandSize; // Update the offset
