@@ -112,9 +112,7 @@ class ClientHandler extends Thread {
         String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
 
 
-        synchronized (waitLock){
-            replicaAcknowledgment.put(currentOffset,0);
-        }
+
         for(Socket replicaSocket : replicas){
             try{
                 OutputStream replicaOut = replicaSocket.getOutputStream();
@@ -198,6 +196,9 @@ class ClientHandler extends Thread {
 
     private void handleReplConfCommand(String[] commandParts, OutputStream out) throws IOException{
         if(commandParts[1].equals("listening-port") || commandParts[1].equals("capa")){
+            synchronized (waitLock){
+                replicaAcknowledgment.put(currentOffset,0);
+            }
             out.write("+OK\r\n".getBytes());
         }
         else if(commandParts[1].equalsIgnoreCase("ACK")){
