@@ -119,6 +119,7 @@ class ClientHandler extends Thread {
                 OutputStream replicaOut = replicaSocket.getOutputStream();
                 replicaOut.write(respCommand.getBytes());
                 replicaOut.write(ackCommand.getBytes());
+                System.out.println("getack send to replica");
                 replicaOut.flush();
             }
             catch (IOException e){
