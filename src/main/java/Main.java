@@ -37,7 +37,7 @@ class ClientHandler extends Thread {
     private static final long REPLICATION_OFFSET = 0;
     private static final Map<Long, Integer> replicaAcknowledgment = new HashMap<>();
     private static final Object waitLock = 0;
-    static long currentOffset = -1;
+    static long currentOffset = 0;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -111,7 +111,7 @@ class ClientHandler extends Thread {
         String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
         String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
 
-        currentOffset++;
+
         synchronized (waitLock){
             replicaAcknowledgment.put(currentOffset,0);
         }
@@ -203,6 +203,7 @@ class ClientHandler extends Thread {
         else if(commandParts[1].equalsIgnoreCase("ACK")){
                 long ackOffset = currentOffset;
                 handleReplicaAck(ackOffset);
+                currentOffset++;
                 out.write("+OK\r\n".getBytes());
         }
         else {
