@@ -200,7 +200,7 @@ class ClientHandler extends Thread {
         if(commandParts[1].equals("listening-port") || commandParts[1].equals("capa")){
             out.write("+OK\r\n".getBytes());
         }
-        else if(commandParts[1].equalsIgnoreCase("GETACK")){
+        else if(commandParts[1].equalsIgnoreCase("ACK")){
                 long ackOffset = currentOffset;
                 handleReplicaAck(ackOffset);
                 out.write("+OK\r\n".getBytes());
@@ -250,7 +250,7 @@ class ClientHandler extends Thread {
             int acknowledged = 0;
 
             synchronized (waitLock){
-                while (acknowledged < numReplicas){
+                while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
                     acknowledged = replicaAcknowledgment.values().stream().mapToInt(Integer::intValue).sum();
                     for(Long key: replicaAcknowledgment.keySet()){
                         System.out.println(key + "->" + replicaAcknowledgment.get(key));
