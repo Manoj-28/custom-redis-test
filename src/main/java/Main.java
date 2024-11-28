@@ -126,7 +126,7 @@ class ClientHandler extends Thread {
                 System.out.println("Failed to send commands to replica: "  +e.getMessage());
             }
         }
-        currentOffset++;
+//        currentOffset++;
     }
     private void handleGetCommand(String[] commandParts, OutputStream out) throws IOException{
 
@@ -250,7 +250,7 @@ class ClientHandler extends Thread {
             int acknowledged = 0;
 
             synchronized (waitLock){
-                while (acknowledged < numReplicas){
+                while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
                     acknowledged = replicaAcknowledgment.values().stream().mapToInt(Integer::intValue).sum();
                     for(Long key: replicaAcknowledgment.keySet()){
                         System.out.println(key + "->" + replicaAcknowledgment.get(key));
