@@ -538,6 +538,7 @@ public class Main {
         if (commandParts.length >= 2) {
             String subCommand = commandParts[1].toUpperCase();
             if ("GETACK".equals(subCommand)) {
+                System.out.println("GETACK check");
                 ClientHandler.handleReplicaAck(ClientHandler.currentOffset);
                 String response = String.format("*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%d\r\n", String.valueOf(offset).length(), offset);
                 System.out.println("Sent REPLCONF ACK " + offset + " to master");
