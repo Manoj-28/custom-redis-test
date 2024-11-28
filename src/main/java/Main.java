@@ -250,7 +250,7 @@ class ClientHandler extends Thread {
             int acknowledged = 0;
 
             synchronized (waitLock){
-                while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
+                while (acknowledged < numReplicas){
                     acknowledged = replicaAcknowledgment.values().stream().mapToInt(Integer::intValue).sum();
                     for(Long key: replicaAcknowledgment.keySet()){
                         System.out.println(key + "->" + replicaAcknowledgment.get(key));
