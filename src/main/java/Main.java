@@ -249,7 +249,6 @@ class ClientHandler extends Thread {
 
             long startTime = System.currentTimeMillis();
             int acknowledged = 0;
-            currentOffset=0;
 
             synchronized (waitLock){
                 while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
