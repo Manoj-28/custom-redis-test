@@ -110,6 +110,7 @@ class ClientHandler extends Thread {
 
         String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
         String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
+        currentOffset=0;
 
 
 
@@ -196,9 +197,6 @@ class ClientHandler extends Thread {
 
     private void handleReplConfCommand(String[] commandParts, OutputStream out) throws IOException{
         if(commandParts[1].equals("listening-port") || commandParts[1].equals("capa")){
-            synchronized (waitLock){
-                replicaAcknowledgment.put(currentOffset,0);
-            }
 //            currentOffset++;
             out.write("+OK\r\n".getBytes());
         }
@@ -249,6 +247,10 @@ class ClientHandler extends Thread {
 
             long startTime = System.currentTimeMillis();
             int acknowledged = 0;
+            currentOffset=0;
+            synchronized (waitLock){
+                replicaAcknowledgment.put(currentOffset,0);
+            }
 
             synchronized (waitLock){
                 while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
@@ -285,7 +287,6 @@ class ClientHandler extends Thread {
                     String[] commandParts = parseRespCommand(reader, inputLine);
                     if(commandParts != null && commandParts.length > 0){
                         String command = commandParts[0].toUpperCase();
-                        currentOffset=0;
                         switch (command){
                             case "PING":
                                 out.write("+PONG\r\n".getBytes());
