@@ -36,11 +36,14 @@ class ClientHandler extends Thread {
     private static final String REPLICATION_ID = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
     private static final long REPLICATION_OFFSET = 0;
     private static final Map<Long, Integer> replicaAcknowledgment = new HashMap<>();
-    private static final Object waitLock = 0;
+    static final Object waitLock = 0;
     static long currentOffset = 0;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
+        synchronized (waitLock){
+            replicaAcknowledgment.put(currentOffset,0);
+        }
     }
 
     public static void setDir(String dirPath){
@@ -203,7 +206,8 @@ class ClientHandler extends Thread {
         if(commandParts[1].equals("listening-port")){
 //            currentOffset++;
             out.write("+OK\r\n".getBytes());
-        } else if (commandParts[1].equals("capa")) {
+        } else if (commandParts[1].equalsIgnoreCase("capa")) {
+
             handleReplicaAck(currentOffset);
             out.write("+OK\r\n".getBytes());
         } else if(commandParts[1].equalsIgnoreCase("ACK")){
