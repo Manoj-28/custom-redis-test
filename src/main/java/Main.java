@@ -194,6 +194,9 @@ class ClientHandler extends Thread {
             replicaAcknowledgment.computeIfPresent(offset,(key,value) -> value+1);
             waitLock.notifyAll();
         }
+        for(Long key: replicaAcknowledgment.keySet()){
+            System.out.println(key + "->" + replicaAcknowledgment.get(key));
+        }
     }
 
     private void handleReplConfCommand(String[] commandParts, OutputStream out) throws IOException{
