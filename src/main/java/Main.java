@@ -35,15 +35,12 @@ class ClientHandler extends Thread {
     // Hardcoded replication ID and offset
     private static final String REPLICATION_ID = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
     private static final long REPLICATION_OFFSET = 0;
-    private static final Map<Long, Integer> replicaAcknowledgment = new HashMap<>();
+    static final Map<Long, Integer> replicaAcknowledgment = new HashMap<>();
     static final Object waitLock = 0;
     static long currentOffset = 0;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
-        synchronized (waitLock){
-            replicaAcknowledgment.put(currentOffset,0);
-        }
     }
 
     public static void setDir(String dirPath){
@@ -366,7 +363,9 @@ public class Main {
         String masterHost="";
         int masterPort=-1;
         boolean isReplica=false;
-
+        synchronized (ClientHandler.waitLock){
+            ClientHandler.replicaAcknowledgment.put(ClientHandler.currentOffset,0);
+        }
 
         // Parse the command line arguments
         for (int i = 0; i < args.length; i++) {
