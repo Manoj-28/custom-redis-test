@@ -285,7 +285,7 @@ class ClientHandler extends Thread {
                     String[] commandParts = parseRespCommand(reader, inputLine);
                     if(commandParts != null && commandParts.length > 0){
                         String command = commandParts[0].toUpperCase();
-
+                        currentOffset=0;
                         switch (command){
                             case "PING":
                                 out.write("+PONG\r\n".getBytes());
