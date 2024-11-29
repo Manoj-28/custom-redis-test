@@ -199,12 +199,12 @@ class ClientHandler extends Thread {
             synchronized (waitLock){
                 replicaAcknowledgment.put(currentOffset,0);
             }
+//            currentOffset++;
             out.write("+OK\r\n".getBytes());
         }
         else if(commandParts[1].equalsIgnoreCase("ACK")){
                 long ackOffset = currentOffset;
                 handleReplicaAck(ackOffset);
-                currentOffset++;
 //                out.write("+OK\r\n".getBytes());
         }
         else {
@@ -256,6 +256,7 @@ class ClientHandler extends Thread {
                     for(Long key: replicaAcknowledgment.keySet()){
                         System.out.println(key + "->" + replicaAcknowledgment.get(key));
                     }
+                    System.out.println("CurrentOffset: " + currentOffset);
                     System.out.println("Acknowledged: " + acknowledged);
                     if(acknowledged < numReplicas){
                         waitLock.wait(timeout);
