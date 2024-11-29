@@ -197,14 +197,16 @@ class ClientHandler extends Thread {
     }
 
     private void handleReplConfCommand(String[] commandParts, OutputStream out) throws IOException{
-        if(commandParts[1].equals("listening-port") || commandParts[1].equals("capa")){
+        if(commandParts[1].equals("listening-port")){
 //            currentOffset++;
             out.write("+OK\r\n".getBytes());
-        }
-        else if(commandParts[1].equalsIgnoreCase("ACK")){
-                long ackOffset = currentOffset;
-                handleReplicaAck(ackOffset);
-//                out.write("+OK\r\n".getBytes());
+        } else if (commandParts[1].equals("capa")) {
+            handleReplicaAck(currentOffset);
+            out.write("+OK\r\n".getBytes());
+        } else if(commandParts[1].equalsIgnoreCase("ACK")){
+//                long ackOffset = currentOffset;
+//                handleReplicaAck(ackOffset);
+                out.write("+OK\r\n".getBytes());
         }
         else {
             out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
@@ -540,7 +542,7 @@ public class Main {
             String subCommand = commandParts[1].toUpperCase();
             if ("GETACK".equals(subCommand)) {
                 System.out.println("GETACK check");
-                ClientHandler.handleReplicaAck(ClientHandler.currentOffset);
+//                ClientHandler.handleReplicaAck(ClientHandler.currentOffset);
                 String response = String.format("*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%d\r\n", String.valueOf(offset).length(), offset);
                 System.out.println("Sent REPLCONF ACK " + offset + " to master");
                 out.write(response.getBytes());
