@@ -204,9 +204,9 @@ class ClientHandler extends Thread {
             handleReplicaAck(currentOffset);
             out.write("+OK\r\n".getBytes());
         } else if(commandParts[1].equalsIgnoreCase("ACK")){
-//                long ackOffset = currentOffset;
-//                handleReplicaAck(ackOffset);
-                out.write("+OK\r\n".getBytes());
+                long ackOffset = currentOffset;
+                handleReplicaAck(ackOffset);
+//                out.write("+OK\r\n".getBytes());
         }
         else {
             out.write("-ERR wrong number of arguments for 'REPLCONF' command\r\n".getBytes());
