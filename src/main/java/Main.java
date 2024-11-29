@@ -111,8 +111,9 @@ class ClientHandler extends Thread {
         String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
         String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
         currentOffset=0;
-
-
+        synchronized (waitLock){
+            replicaAcknowledgment.put(currentOffset,0);
+        }
 
         for(Socket replicaSocket : replicas){
             try{
@@ -247,10 +248,6 @@ class ClientHandler extends Thread {
 
             long startTime = System.currentTimeMillis();
             int acknowledged = 0;
-            currentOffset=0;
-            synchronized (waitLock){
-                replicaAcknowledgment.put(currentOffset,0);
-            }
 
             synchronized (waitLock){
                 while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
