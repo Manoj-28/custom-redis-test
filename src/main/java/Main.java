@@ -242,7 +242,6 @@ class ClientHandler extends Thread {
             out.write("-ERR wrong number of arguments for 'WAIT' command\r\n".getBytes());
             return;
         }
-
         try {
             // Parse the arguments (numreplicas and timeout)
             int numReplicas = Integer.parseInt(commandParts[1]);
