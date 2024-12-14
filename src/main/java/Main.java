@@ -38,6 +38,7 @@ class ClientHandler extends Thread {
     static final Map<Long, Integer> replicaAcknowledgment = new HashMap<>();
     static final Object waitLock = 0;
     static long currentOffset = 0;
+    boolean ACKFlag = false;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -109,7 +110,7 @@ class ClientHandler extends Thread {
         out.write("+OK\r\n".getBytes());
 
         String respCommand = String.format("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", key.length(), key, value.length(), value);
-        String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
+//        String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
         currentOffset=0;
         synchronized (waitLock){
             replicaAcknowledgment.put(currentOffset,0);
@@ -119,8 +120,8 @@ class ClientHandler extends Thread {
             try{
                 OutputStream replicaOut = replicaSocket.getOutputStream();
                 replicaOut.write(respCommand.getBytes());
-                replicaOut.write(ackCommand.getBytes());
-                System.out.println("getack send to replica");
+//                replicaOut.write(ackCommand.getBytes());
+//                System.out.println("getack send to replica");
                 replicaOut.flush();
             }
             catch (IOException e){
@@ -269,6 +270,19 @@ class ClientHandler extends Thread {
                 }
             }
             out.write(String.format(":%d\r\n", acknowledged).getBytes());
+            String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
+            for(Socket replicaSocket : replicas){
+                try{
+                    OutputStream replicaOut = replicaSocket.getOutputStream();
+//                    replicaOut.write(respCommand.getBytes());
+                    replicaOut.write(ackCommand.getBytes());
+                    System.out.println("getack send to replica");
+                    replicaOut.flush();
+                }
+                catch (IOException e){
+                    System.out.println("Failed to send commands to replica: "  +e.getMessage());
+                }
+            }
         } catch (NumberFormatException | InterruptedException e) {
             out.write("-ERR invalid arguments for 'WAIT' command\r\n".getBytes());
         }
@@ -302,6 +316,7 @@ class ClientHandler extends Thread {
                                 break;
                             case "SET":
                                 handleSetCommand(commandParts,out);
+                                ACKFlag=true;
                                 break;
                             case "GET":
                                 handleGetCommand(commandParts, out);
