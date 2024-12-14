@@ -259,7 +259,6 @@ class ClientHandler extends Thread {
             for(Socket replicaSocket : replicas){
                 try{
                     OutputStream replicaOut = replicaSocket.getOutputStream();
-//                    replicaOut.write(respCommand.getBytes());
                     replicaOut.write(ackCommand.getBytes());
                     System.out.println("getack send to replica");
                     replicaOut.flush();
@@ -286,6 +285,23 @@ class ClientHandler extends Thread {
             out.write(String.format(":%d\r\n", acknowledged).getBytes());
         } catch (NumberFormatException | InterruptedException e) {
             out.write("-ERR invalid arguments for 'WAIT' command\r\n".getBytes());
+        }
+    }
+
+    private void handleTypeCommand(String[] commandParts, OutputStream out) throws IOException {
+        if(commandParts.length < 2){
+            out.write("-ERR wrong number of arguments for 'TYPE' command\r\n".getBytes());
+            return;
+        }
+
+        String key = commandParts[1];
+        ValueWithExpiry value = KeyValueStore.get(key);
+
+        if(value != null){
+            out.write("+string\r\n".getBytes());
+        }
+        else{
+            out.write("+none\r\n".getBytes());
         }
     }
 
@@ -341,6 +357,9 @@ class ClientHandler extends Thread {
                                 isReplicaConnection = true;
                                 replicas.add(clientSocket);         //add replica socket
                                 handlePsyncCommand(commandParts,out);
+                                break;
+                            case "TYPE":
+                                handleTypeCommand(commandParts,out);
                                 break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
