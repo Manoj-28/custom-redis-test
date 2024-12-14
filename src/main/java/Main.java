@@ -270,6 +270,7 @@ class ClientHandler extends Thread {
                 }
             }
             out.write(String.format(":%d\r\n", acknowledged).getBytes());
+
             String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
             for(Socket replicaSocket : replicas){
                 try{
