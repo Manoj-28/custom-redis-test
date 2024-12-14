@@ -255,6 +255,19 @@ class ClientHandler extends Thread {
 
             long startTime = System.currentTimeMillis();
             int acknowledged = 0;
+            String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
+            for(Socket replicaSocket : replicas){
+                try{
+                    OutputStream replicaOut = replicaSocket.getOutputStream();
+//                    replicaOut.write(respCommand.getBytes());
+                    replicaOut.write(ackCommand.getBytes());
+                    System.out.println("getack send to replica");
+                    replicaOut.flush();
+                }
+                catch (IOException e){
+                    System.out.println("Failed to send commands to replica: "  +e.getMessage());
+                }
+            }
 
             synchronized (waitLock){
                 while (System.currentTimeMillis() - startTime < timeout && acknowledged < numReplicas){
@@ -270,20 +283,6 @@ class ClientHandler extends Thread {
                 }
             }
 
-
-            String ackCommand  = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
-            for(Socket replicaSocket : replicas){
-                try{
-                    OutputStream replicaOut = replicaSocket.getOutputStream();
-//                    replicaOut.write(respCommand.getBytes());
-                    replicaOut.write(ackCommand.getBytes());
-                    System.out.println("getack send to replica");
-                    replicaOut.flush();
-                }
-                catch (IOException e){
-                    System.out.println("Failed to send commands to replica: "  +e.getMessage());
-                }
-            }
             out.write(String.format(":%d\r\n", acknowledged).getBytes());
         } catch (NumberFormatException | InterruptedException e) {
             out.write("-ERR invalid arguments for 'WAIT' command\r\n".getBytes());
