@@ -350,7 +350,6 @@ class ClientHandler extends Thread {
     }
 }
 
-
 public class Main {
 
     private static long offset = 0;
