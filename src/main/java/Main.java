@@ -1,10 +1,7 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Base64;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
@@ -19,6 +16,16 @@ class ValueWithExpiry{
 
     public boolean isExpired(){
         return expiryTime > 0 && System.currentTimeMillis() > expiryTime;
+    }
+}
+
+class StreamEntry{
+    String id;
+    Map<String,String> fields;
+
+    public StreamEntry(String id,Map<String,String> fields){
+        this.id = id;
+        this.fields = fields;
     }
 }
 
@@ -39,6 +46,10 @@ class ClientHandler extends Thread {
     static final Object waitLock = 0;
     static long currentOffset = 0;
     boolean ACKFlag = false;
+
+    private static final Map<String,List<StreamEntry>> streams = new HashMap<>();
+    private static long lastTimestamp = 0;
+    private static int lastsequence = 0;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -296,13 +307,57 @@ class ClientHandler extends Thread {
 
         String key = commandParts[1];
         ValueWithExpiry value = KeyValueStore.get(key);
-
         if(value != null){
             out.write("+string\r\n".getBytes());
         }
         else{
-            out.write("+none\r\n".getBytes());
+            if(streams.containsKey(key)){
+                out.write("+stream\r\n".getBytes());
+            }
+            else{
+                out.write("+none\r\n".getBytes());
+            }
         }
+    }
+
+    private String generatreEntryId(){
+        long currentTimestamp = System.currentTimeMillis();
+        if(currentTimestamp > lastTimestamp){
+            lastTimestamp = currentTimestamp;
+            lastsequence = 0;
+        }
+        else{
+            lastsequence++;
+        }
+        return lastTimestamp + "-" + lastsequence;
+    }
+
+    private boolean isValidEntryId(String entryId){
+        return entryId.matches("\\d+-\\d+");
+    }
+
+    private void handleXAddCommand(String[] commandParts, OutputStream out) throws IOException{
+        if(commandParts.length < 5 || commandParts.length % 2 ==0){
+            out.write("-ERR wrong number of arguments for 'XADD' command\r\n".getBytes());
+            return;
+        }
+
+        String streamKey = commandParts[1];
+        String entryId = commandParts[2];
+        Map<String,String> fields = new HashMap<>();
+
+        if("*".equals(entryId)) {
+            entryId = generatreEntryId();
+        } else if (!isValidEntryId(entryId)) {
+            out.write("-ERR Invalid entry ID format\r\n".getBytes());
+            return;
+        }
+
+        streams.putIfAbsent(streamKey,new ArrayList<>());
+        List<StreamEntry> stream = streams.get(streamKey);
+        stream.add(new StreamEntry(entryId,fields));
+
+        out.write(String.format("$%d\r\n%s\r\n", entryId.length(), entryId).getBytes());
     }
 
 
@@ -360,6 +415,9 @@ class ClientHandler extends Thread {
                                 break;
                             case "TYPE":
                                 handleTypeCommand(commandParts,out);
+                                break;
+                            case "XADD":
+                                handleXAddCommand(commandParts,out);
                                 break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
