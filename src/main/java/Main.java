@@ -345,6 +345,9 @@ class ClientHandler extends Thread {
         String streamKey = commandParts[1];
         String entryId = commandParts[2];
         Map<String,String> fields = new HashMap<>();
+        for(int i=3;i<commandParts.length;i=i+2){
+            fields.put(commandParts[i],commandParts[i+1]);
+        }
 
         if("*".equals(entryId)) {
             entryId = generatreEntryId();
