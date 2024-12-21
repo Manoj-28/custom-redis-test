@@ -3,6 +3,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 
 
 class ValueWithExpiry{
@@ -336,6 +337,8 @@ class ClientHandler extends Thread {
         return entryId.matches("\\d+-\\d+");
     }
 
+
+
     private void handleXAddCommand(String[] commandParts, OutputStream out) throws IOException{
         if(commandParts.length < 5 || commandParts.length % 2 ==0){
             out.write("-ERR wrong number of arguments for 'XADD' command\r\n".getBytes());
@@ -349,8 +352,32 @@ class ClientHandler extends Thread {
             fields.put(commandParts[i],commandParts[i+1]);
         }
 
-        if("*".equals(entryId)) {
-            entryId = generatreEntryId();
+        streams.putIfAbsent(streamKey, new ArrayList<>());
+        List<StreamEntry> stream = streams.get(streamKey);
+
+        if(entryId.endsWith("-*")) {
+            String[] idParts = entryId.split("-");
+            long millisecondsTime = Long.parseLong(idParts[0]);
+            long sequenceNumber = 0;
+
+            if(!stream.isEmpty()){
+                StreamEntry lastEntry = stream.get(stream.size()-1);
+                String[] lastIdParts = lastEntry.id.split("-");
+                long lastMillisecondsTime = Long.parseLong(lastIdParts[0]);
+                long lastSequenceNumber = Long.parseLong(lastIdParts[1]);
+
+                if(millisecondsTime == lastMillisecondsTime){
+                    sequenceNumber = lastSequenceNumber + 1;
+                }
+            }
+
+            if(millisecondsTime ==0){
+                out.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
+                return;
+            }
+
+            entryId = millisecondsTime + "-" + sequenceNumber;
+
         } else if (!isValidEntryId(entryId)) {
             out.write("-ERR Invalid entry ID format\r\n".getBytes());
             return;
@@ -364,9 +391,6 @@ class ClientHandler extends Thread {
             out.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
             return;
         }
-
-        streams.putIfAbsent(streamKey,new ArrayList<>());
-        List<StreamEntry> stream = streams.get(streamKey);
 
         if(!stream.isEmpty()){
             StreamEntry lastEntry = stream.get(stream.size() - 1);
