@@ -358,7 +358,7 @@ class ClientHandler extends Thread {
         if(entryId.endsWith("*")) {
             String[] idParts = entryId.split("-");
             long millisecondsTime=0;
-            if(idParts.length > 0){
+            if(idParts.length > 1){
                 millisecondsTime = Long.parseLong(idParts[0]);
             }
             else {
