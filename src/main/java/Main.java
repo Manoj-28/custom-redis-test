@@ -355,9 +355,15 @@ class ClientHandler extends Thread {
         streams.putIfAbsent(streamKey, new ArrayList<>());
         List<StreamEntry> stream = streams.get(streamKey);
 
-        if(entryId.endsWith("-*")) {
+        if(entryId.endsWith("*")) {
             String[] idParts = entryId.split("-");
-            long millisecondsTime = Long.parseLong(idParts[0]);
+            long millisecondsTime=0;
+            if(idParts.length > 0){
+                millisecondsTime = Long.parseLong(idParts[0]);
+            }
+            else {
+                millisecondsTime = System.currentTimeMillis();
+            }
             long sequenceNumber = 0;
 
             if(!stream.isEmpty()){
