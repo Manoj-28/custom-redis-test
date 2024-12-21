@@ -372,8 +372,7 @@ class ClientHandler extends Thread {
             }
 
             if(millisecondsTime == 0 && sequenceNumber<1){
-                out.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
-                return;
+                sequenceNumber=1;
             }
 
             entryId = millisecondsTime + "-" + sequenceNumber;
