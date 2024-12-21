@@ -356,10 +356,31 @@ class ClientHandler extends Thread {
             return;
         }
 
+        String[] idParts = entryId.split("-");
+        long millisecondsTime = Long.parseLong(idParts[0]);
+        long sequenceNumber = Long.parseLong(idParts[1]);
+
+        if(millisecondsTime == 0 && sequenceNumber < 1){
+            out.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
+            return;
+        }
+
         streams.putIfAbsent(streamKey,new ArrayList<>());
         List<StreamEntry> stream = streams.get(streamKey);
-        stream.add(new StreamEntry(entryId,fields));
 
+        if(!stream.isEmpty()){
+            StreamEntry lastEntry = stream.get(stream.size() - 1);
+            String[] lastIdParts = lastEntry.id.split("-");
+            long lastMilliSecondsTime = Long.parseLong(lastIdParts[0]);
+            long lastSequenceNumber = Long.parseLong(lastIdParts[1]);
+
+            if(millisecondsTime < lastMilliSecondsTime || millisecondsTime == lastMilliSecondsTime && sequenceNumber <= lastSequenceNumber){
+                out.write("-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
+                return;
+            }
+        }
+
+        stream.add(new StreamEntry(entryId,fields));
         out.write(String.format("$%d\r\n%s\r\n", entryId.length(), entryId).getBytes());
     }
 
