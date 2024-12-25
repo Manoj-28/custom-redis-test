@@ -333,10 +333,10 @@ class ClientHandler extends Thread {
             out.write("*0\r\n".getBytes());
             return;
         }
-        if(!isValidEntryId(startId) || !isValidEntryId(endId)){
-            out.write("-ERR Invalid entry ID format\r\n".getBytes());
-            return;
-        }
+//        if(!isValidEntryId(startId) || !isValidEntryId(endId)){
+//            out.write("-ERR Invalid entry ID format\r\n".getBytes());
+//            return;
+//        }
 
         String[] startParts = startId.split("-");
         String[] endParts = endId.split("-");
