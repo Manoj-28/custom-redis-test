@@ -320,13 +320,13 @@ class ClientHandler extends Thread {
     }
 
     private void handleXReadCommand(String[] commandParts, OutputStream out) throws IOException {
-        if (commandParts.length < 4 || !"streams".equals(commandParts[2])) {
+        if (commandParts.length < 4 || !"streams".equals(commandParts[1])) {
             out.write("-ERR wrong number of arguments for 'XREAD' command\r\n".getBytes());
             return;
         }
 
-        String streamKey = commandParts[3];
-        String startId = commandParts[4];
+        String streamKey = commandParts[2];
+        String startId = commandParts[3];
 
         // Check if the stream exists
         List<StreamEntry> stream = streams.get(streamKey);
