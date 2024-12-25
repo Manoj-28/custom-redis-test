@@ -49,8 +49,6 @@ class ClientHandler extends Thread {
     boolean ACKFlag = false;
 
     private static final Map<String,List<StreamEntry>> streams = new HashMap<>();
-    private static long lastTimestamp = 0;
-    private static int lastsequence = 0;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -321,16 +319,59 @@ class ClientHandler extends Thread {
         }
     }
 
-    private String generatreEntryId(){
-        long currentTimestamp = System.currentTimeMillis();
-        if(currentTimestamp > lastTimestamp){
-            lastTimestamp = currentTimestamp;
-            lastsequence = 0;
+    private void handleXRangeCommand(String[] commndParts, OutputStream out) throws IOException {
+        if(commndParts.length != 4){
+            out.write("-ERR wrong number of arguments for 'XRANGE' command\r\n".getBytes());
+            return;
         }
-        else{
-            lastsequence++;
+        String streamKey = commndParts[1];
+        String startId = commndParts[2];
+        String endId = commndParts[3];
+
+        List<StreamEntry> stream = streams.get(streamKey);
+        if(stream == null || stream.isEmpty()){
+            out.write("*0\r\n".getBytes());
+            return;
         }
-        return lastTimestamp + "-" + lastsequence;
+        if(!isValidEntryId(startId) || !isValidEntryId(endId)){
+            out.write("-ERR Invalid entry ID format\r\n".getBytes());
+            return;
+        }
+
+        String[] startParts = startId.split("-");
+        String[] endParts = endId.split("-");
+        long startMillis = Long.parseLong(startParts[0]);
+        long startSeq = Long.parseLong(startParts[1]);
+        long endMillis = Long.parseLong(endParts[0]);
+        long endSeq = Long.parseLong(endParts[1]);
+
+        List<StreamEntry> result = new ArrayList<>();
+        for(StreamEntry entry : stream){
+            String[] entryIdParts = entry.id.split("-");
+            long entryMillis = Long.parseLong(entryIdParts[0]);
+            long entrySeq = Long.parseLong(entryIdParts[1]);
+
+            if((entryMillis > startMillis || (entryMillis == startMillis && entrySeq >= startSeq)) &&
+                entryMillis < endMillis || (entryMillis == endMillis && entrySeq <= endSeq)){
+                result.add(entry);
+            }
+        }
+
+        StringBuilder response = new StringBuilder();
+        response.append("*").append(result.size()).append("\r\n");
+        for(StreamEntry entry : result){
+            response.append("*2\r\n");
+            response.append("$").append(entry.id.length()).append("\r\n").append(entry.id).append("\r\n");
+
+            //key-value pairs
+            response.append("*").append(entry.fields.size()*2).append("\r\n");
+            for(Map.Entry<String, String> field : entry.fields.entrySet()){
+                response.append("$").append(field.getKey().length()).append("\r\n").append(field.getKey()).append("\r\n");
+                response.append("$").append(field.getValue().length()).append("\r\n").append(field.getValue()).append("\r\n");
+            }
+        }
+
+        out.write(response.toString().getBytes());
     }
 
     private boolean isValidEntryId(String entryId){
@@ -471,6 +512,9 @@ class ClientHandler extends Thread {
                                 break;
                             case "XADD":
                                 handleXAddCommand(commandParts,out);
+                                break;
+                            case "XRANGE":
+                                handleXRangeCommand(commandParts,out);
                                 break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
