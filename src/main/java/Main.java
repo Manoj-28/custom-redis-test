@@ -342,7 +342,7 @@ class ClientHandler extends Thread {
         String[] endParts = endId.split("-");
 
         long startMillis=0;
-        long startSeq=0;
+        long startSeq=1;
         if(startParts.length > 1) {
             startMillis = Long.parseLong(startParts[0]);
             startSeq = Long.parseLong(startParts[1]);
