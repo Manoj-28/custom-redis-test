@@ -319,6 +319,66 @@ class ClientHandler extends Thread {
         }
     }
 
+    private void handleXReadCommand(String[] commandParts, OutputStream out) throws IOException {
+        if (commandParts.length < 4 || !"streams".equals(commandParts[2])) {
+            out.write("-ERR wrong number of arguments for 'XREAD' command\r\n".getBytes());
+            return;
+        }
+
+        String streamKey = commandParts[3];
+        String startId = commandParts[4];
+
+        // Check if the stream exists
+        List<StreamEntry> stream = streams.get(streamKey);
+        if (stream == null || stream.isEmpty()) {
+            out.write("*0\r\n".getBytes()); // Empty response
+            return;
+        }
+
+        // Parse start ID
+        long startMillis = 0;
+        long startSeq = 0;
+        if (!"0-0".equals(startId)) {
+            String[] startParts = startId.split("-");
+            startMillis = Long.parseLong(startParts[0]);
+            startSeq = startParts.length > 1 ? Long.parseLong(startParts[1]) : 0;
+        }
+
+        // Filter entries with ID strictly greater than startId
+        List<StreamEntry> result = new ArrayList<>();
+        for (StreamEntry entry : stream) {
+            String[] idParts = entry.id.split("-");
+            long entryMillis = Long.parseLong(idParts[0]);
+            long entrySeq = Long.parseLong(idParts[1]);
+
+            if (entryMillis > startMillis || (entryMillis == startMillis && entrySeq > startSeq)) {
+                result.add(entry);
+            }
+        }
+
+        // Build the RESP response
+        StringBuilder response = new StringBuilder();
+        response.append("*1\r\n"); // One stream in the response
+        response.append("*2\r\n");
+        response.append("$").append(streamKey.length()).append("\r\n").append(streamKey).append("\r\n");
+        response.append("*").append(result.size()).append("\r\n"); // Number of entries in the stream
+
+        for (StreamEntry entry : result) {
+            response.append("*2\r\n");
+            response.append("$").append(entry.id.length()).append("\r\n").append(entry.id).append("\r\n");
+            response.append("*").append(entry.fields.size() * 2).append("\r\n");
+            for (Map.Entry<String, String> field : entry.fields.entrySet()) {
+                response.append("$").append(field.getKey().length()).append("\r\n")
+                        .append(field.getKey()).append("\r\n");
+                response.append("$").append(field.getValue().length()).append("\r\n")
+                        .append(field.getValue()).append("\r\n");
+            }
+        }
+
+        out.write(response.toString().getBytes());
+    }
+
+
     private void handleXRangeCommand(String[] commndParts, OutputStream out) throws IOException {
         if(commndParts.length != 4){
             out.write("-ERR wrong number of arguments for 'XRANGE' command\r\n".getBytes());
@@ -520,6 +580,9 @@ class ClientHandler extends Thread {
                                 break;
                             case "XRANGE":
                                 handleXRangeCommand(commandParts,out);
+                                break;
+                            case "XREAD":
+                                handleXReadCommand(commandParts,out);
                                 break;
                             default:
                                 out.write("-ERR unknown command\r\n".getBytes());
