@@ -519,7 +519,6 @@ class ClientHandler extends Thread {
         out.write(String.format("$%d\r\n%s\r\n", entryId.length(), entryId).getBytes());
     }
 
-
     @Override
     public void run() {
         boolean isReplicaConnection = false;
