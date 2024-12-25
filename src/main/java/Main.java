@@ -333,22 +333,22 @@ class ClientHandler extends Thread {
             out.write("*0\r\n".getBytes());
             return;
         }
-//        if(!isValidEntryId(startId) || !isValidEntryId(endId)){
-//            out.write("-ERR Invalid entry ID format\r\n".getBytes());
-//            return;
-//        }
 
-        String[] startParts = startId.split("-");
-        String[] endParts = endId.split("-");
-
-        long startMillis=0;
-        long startSeq=1;
-        if(startParts.length > 1) {
+        long startMillis = 0;
+        long startSeq = 0;
+        if (!"-".equals(startId)) {
+            String[] startParts = startId.split("-");
             startMillis = Long.parseLong(startParts[0]);
-            startSeq = Long.parseLong(startParts[1]);
+            startSeq = startParts.length > 1 ? Long.parseLong(startParts[1]) : 0;
         }
-        long endMillis = Long.parseLong(endParts[0]);
-        long endSeq = Long.parseLong(endParts[1]);
+
+        long endMillis = Long.MAX_VALUE;
+        long endSeq = Long.MAX_VALUE;
+        if (!"+".equals(endId)) {
+            String[] endParts = endId.split("-");
+            endMillis = Long.parseLong(endParts[0]);
+            endSeq = endParts.length > 1 ? Long.parseLong(endParts[1]) : Long.MAX_VALUE;
+        }
 
         List<StreamEntry> result = new ArrayList<>();
         for(StreamEntry entry : stream){
