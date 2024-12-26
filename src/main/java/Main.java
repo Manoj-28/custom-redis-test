@@ -326,7 +326,7 @@ class ClientHandler extends Thread {
         }
 
         // Extract stream keys and corresponding start IDs
-        int streamsIndex = 2;
+        int streamsIndex = 3;
         int idsIndex = streamsIndex + 1;
         int numStreams = (commandParts.length - streamsIndex) / 2;
 
