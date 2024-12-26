@@ -326,9 +326,9 @@ class ClientHandler extends Thread {
         }
 
         // Extract stream keys and corresponding start IDs
-        int streamIndex = commandParts.length/2-1;
-        int idsIndex = streamIndex*2;
-        int numStreams = idsIndex - streamIndex;
+        int streamIndex = 2;
+        int numStreams = (commandParts.length -2)/2;
+        int idsIndex = streamIndex + numStreams;
 
         List<String> streamKeys = new ArrayList<>();
         List<String> startIds = new ArrayList<>();
@@ -399,14 +399,14 @@ class ClientHandler extends Thread {
 
 
 
-    private void handleXRangeCommand(String[] commndParts, OutputStream out) throws IOException {
-        if(commndParts.length != 4){
+    private void handleXRangeCommand(String[] commandParts, OutputStream out) throws IOException {
+        if(commandParts.length != 4){
             out.write("-ERR wrong number of arguments for 'XRANGE' command\r\n".getBytes());
             return;
         }
-        String streamKey = commndParts[1];
-        String startId = commndParts[2];
-        String endId = commndParts[3];
+        String streamKey = commandParts[1];
+        String startId = commandParts[2];
+        String endId = commandParts[3];
 
         List<StreamEntry> stream = streams.get(streamKey);
         if(stream == null || stream.isEmpty()){
