@@ -326,22 +326,28 @@ class ClientHandler extends Thread {
         }
 
         // Extract stream keys and corresponding start IDs
-        int streamsIndex = 3;
-        int idsIndex = streamsIndex + 1;
-        int numStreams = (commandParts.length - streamsIndex) / 2;
-
+        int streamsIndex = 2; // "streams" is at index 1
         List<String> streamKeys = new ArrayList<>();
         List<String> startIds = new ArrayList<>();
 
-        for (int i = 0; i < numStreams; i++) {
-            streamKeys.add(commandParts[streamsIndex + i]);
-            startIds.add(commandParts[idsIndex + i]);
+        // Read streams and IDs from arguments
+        for (int i = streamsIndex + 1; i < commandParts.length; i++) {
+            if (i < commandParts.length / 2 + streamsIndex) {
+                streamKeys.add(commandParts[i]);
+            } else {
+                startIds.add(commandParts[i]);
+            }
+        }
+
+        if (streamKeys.size() != startIds.size()) {
+            out.write("-ERR number of stream keys and IDs do not match\r\n".getBytes());
+            return;
         }
 
         StringBuilder response = new StringBuilder();
-        response.append("*").append(numStreams).append("\r\n"); // Number of streams in the response
+        response.append("*").append(streamKeys.size()).append("\r\n"); // Number of streams in the response
 
-        for (int i = 0; i < numStreams; i++) {
+        for (int i = 0; i < streamKeys.size(); i++) {
             String streamKey = streamKeys.get(i);
             String startId = startIds.get(i);
 
@@ -396,6 +402,7 @@ class ClientHandler extends Thread {
 
         out.write(response.toString().getBytes());
     }
+
 
 
 
