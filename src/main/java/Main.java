@@ -320,63 +320,83 @@ class ClientHandler extends Thread {
     }
 
     private void handleXReadCommand(String[] commandParts, OutputStream out) throws IOException {
-        if (commandParts.length < 4 || !"streams".equals(commandParts[1])) {
+        if (commandParts.length < 5 || !"streams".equals(commandParts[2])) {
             out.write("-ERR wrong number of arguments for 'XREAD' command\r\n".getBytes());
             return;
         }
 
-        String streamKey = commandParts[2];
-        String startId = commandParts[3];
+        // Extract stream keys and corresponding start IDs
+        int streamsIndex = 3;
+        int idsIndex = streamsIndex + 1;
+        int numStreams = (commandParts.length - streamsIndex) / 2;
 
-        // Check if the stream exists
-        List<StreamEntry> stream = streams.get(streamKey);
-        if (stream == null || stream.isEmpty()) {
-            out.write("*0\r\n".getBytes()); // Empty response
-            return;
+        List<String> streamKeys = new ArrayList<>();
+        List<String> startIds = new ArrayList<>();
+
+        for (int i = 0; i < numStreams; i++) {
+            streamKeys.add(commandParts[streamsIndex + i]);
+            startIds.add(commandParts[idsIndex + i]);
         }
 
-        // Parse start ID
-        long startMillis = 0;
-        long startSeq = 0;
-        if (!"0-0".equals(startId)) {
-            String[] startParts = startId.split("-");
-            startMillis = Long.parseLong(startParts[0]);
-            startSeq = startParts.length > 1 ? Long.parseLong(startParts[1]) : 0;
-        }
-
-        // Filter entries with ID strictly greater than startId
-        List<StreamEntry> result = new ArrayList<>();
-        for (StreamEntry entry : stream) {
-            String[] idParts = entry.id.split("-");
-            long entryMillis = Long.parseLong(idParts[0]);
-            long entrySeq = Long.parseLong(idParts[1]);
-
-            if (entryMillis > startMillis || (entryMillis == startMillis && entrySeq > startSeq)) {
-                result.add(entry);
-            }
-        }
-
-        // Build the RESP response
         StringBuilder response = new StringBuilder();
-        response.append("*1\r\n"); // One stream in the response
-        response.append("*2\r\n");
-        response.append("$").append(streamKey.length()).append("\r\n").append(streamKey).append("\r\n");
-        response.append("*").append(result.size()).append("\r\n"); // Number of entries in the stream
+        response.append("*").append(numStreams).append("\r\n"); // Number of streams in the response
 
-        for (StreamEntry entry : result) {
+        for (int i = 0; i < numStreams; i++) {
+            String streamKey = streamKeys.get(i);
+            String startId = startIds.get(i);
+
+            // Check if the stream exists
+            List<StreamEntry> stream = streams.get(streamKey);
+            if (stream == null || stream.isEmpty()) {
+                // Add an empty response for the stream
+                response.append("*2\r\n");
+                response.append("$").append(streamKey.length()).append("\r\n").append(streamKey).append("\r\n");
+                response.append("*0\r\n"); // No entries
+                continue;
+            }
+
+            // Parse start ID
+            long startMillis = 0;
+            long startSeq = 0;
+            if (!"0-0".equals(startId)) {
+                String[] startParts = startId.split("-");
+                startMillis = Long.parseLong(startParts[0]);
+                startSeq = startParts.length > 1 ? Long.parseLong(startParts[1]) : 0;
+            }
+
+            // Filter entries with ID strictly greater than startId
+            List<StreamEntry> result = new ArrayList<>();
+            for (StreamEntry entry : stream) {
+                String[] idParts = entry.id.split("-");
+                long entryMillis = Long.parseLong(idParts[0]);
+                long entrySeq = Long.parseLong(idParts[1]);
+
+                if (entryMillis > startMillis || (entryMillis == startMillis && entrySeq > startSeq)) {
+                    result.add(entry);
+                }
+            }
+
+            // Add the stream's data to the response
             response.append("*2\r\n");
-            response.append("$").append(entry.id.length()).append("\r\n").append(entry.id).append("\r\n");
-            response.append("*").append(entry.fields.size() * 2).append("\r\n");
-            for (Map.Entry<String, String> field : entry.fields.entrySet()) {
-                response.append("$").append(field.getKey().length()).append("\r\n")
-                        .append(field.getKey()).append("\r\n");
-                response.append("$").append(field.getValue().length()).append("\r\n")
-                        .append(field.getValue()).append("\r\n");
+            response.append("$").append(streamKey.length()).append("\r\n").append(streamKey).append("\r\n");
+            response.append("*").append(result.size()).append("\r\n");
+
+            for (StreamEntry entry : result) {
+                response.append("*2\r\n");
+                response.append("$").append(entry.id.length()).append("\r\n").append(entry.id).append("\r\n");
+                response.append("*").append(entry.fields.size() * 2).append("\r\n");
+                for (Map.Entry<String, String> field : entry.fields.entrySet()) {
+                    response.append("$").append(field.getKey().length()).append("\r\n")
+                            .append(field.getKey()).append("\r\n");
+                    response.append("$").append(field.getValue().length()).append("\r\n")
+                            .append(field.getValue()).append("\r\n");
+                }
             }
         }
 
         out.write(response.toString().getBytes());
     }
+
 
 
     private void handleXRangeCommand(String[] commndParts, OutputStream out) throws IOException {
