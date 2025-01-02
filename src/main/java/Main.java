@@ -331,7 +331,7 @@ class ClientHandler extends Thread {
         }
 
         if(!"streams".equals(commandParts[streamIndex])){
-            out.write("-ERR wrong nuber of arguments fro 'XREAD' command\r\n".getBytes());
+            out.write("-ERR wrong number of arguments for 'XREAD' command\r\n".getBytes());
             return;
         }
 
