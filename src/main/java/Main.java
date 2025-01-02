@@ -566,6 +566,7 @@ class ClientHandler extends Thread {
 
         stream.add(new StreamEntry(entryId,fields));
         out.write(String.format("$%d\r\n%s\r\n", entryId.length(), entryId).getBytes());
+        System.out.println("Reached!");
     }
 
     @Override
