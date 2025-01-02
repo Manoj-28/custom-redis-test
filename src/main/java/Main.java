@@ -342,7 +342,7 @@ class ClientHandler extends Thread {
         int idsIndex = streamIndex + 1 + numStreams;
         for(int i=0;i<numStreams;i++){
             streamKeys.add(commandParts[streamIndex + 1 + i]);
-            startIds.add(commandParts[idsIndex + 1]);
+            startIds.add(commandParts[idsIndex + i]);
         }
 
         StringBuilder response = new StringBuilder();
