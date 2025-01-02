@@ -348,7 +348,7 @@ class ClientHandler extends Thread {
         StringBuilder response = new StringBuilder();
         long endTime = System.currentTimeMillis() + blockTimeout;
 
-        while (true){
+//        while (true){
             boolean newEntriesFound = false;
 
              response.setLength(0);
@@ -416,7 +416,7 @@ class ClientHandler extends Thread {
                      return;
                  }
              }
-        }
+//        }
 
         if(response.length() > 0){
             out.write(response.toString().getBytes());
