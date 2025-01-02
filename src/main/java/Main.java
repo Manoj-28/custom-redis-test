@@ -380,7 +380,7 @@ class ClientHandler extends Thread {
                          long entryMillis = Long.parseLong(idParts[0]);
                          long entryseq = Long.parseLong(idParts[1]);
 
-                         if(entryMillis < startMillis || (entryMillis == startMillis && entryseq > startSeq)){
+                         if(entryMillis > startMillis || (entryMillis == startMillis && entryseq > startSeq)){
                              result.add(entry);
                          }
                      }
