@@ -424,6 +424,7 @@ class ClientHandler extends Thread {
         else{
             out.write("$-1\r\n".getBytes());
         }
+        System.out.println("Reached xread!");
     }
 
 
