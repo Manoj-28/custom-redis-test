@@ -378,9 +378,9 @@ class ClientHandler extends Thread {
                      for(StreamEntry entry : stream){
                          String[] idParts = entry.id.split("-");
                          long entryMillis = Long.parseLong(idParts[0]);
-                         long entryseq = Long.parseLong(idParts[1]);
+                         long entrySeq = Long.parseLong(idParts[1]);
 
-                         if(entryMillis > startMillis || (entryMillis == startMillis && entryseq > startSeq)){
+                         if(entryMillis > startMillis || (entryMillis == startMillis && entrySeq > startSeq)){
                              result.add(entry);
                          }
                      }
@@ -495,77 +495,79 @@ class ClientHandler extends Thread {
 
 
 
-    private void handleXAddCommand(String[] commandParts, OutputStream out) throws IOException{
-        if(commandParts.length < 5 || commandParts.length % 2 ==0){
+    private void handleXAddCommand(String[] commandParts, OutputStream out) throws IOException {
+        if (commandParts.length < 5 || commandParts.length % 2 == 0) {
             out.write("-ERR wrong number of arguments for 'XADD' command\r\n".getBytes());
             return;
         }
 
         String streamKey = commandParts[1];
         String entryId = commandParts[2];
-        Map<String,String> fields = new HashMap<>();
-        for(int i=3;i<commandParts.length;i=i+2){
-            fields.put(commandParts[i],commandParts[i+1]);
+        Map<String, String> fields = new HashMap<>();
+        for (int i = 3; i < commandParts.length; i = i + 2) {
+            fields.put(commandParts[i], commandParts[i + 1]);
         }
 
-        streams.putIfAbsent(streamKey, new ArrayList<>());
-        List<StreamEntry> stream = streams.get(streamKey);
+        synchronized (streams) {
+            streams.putIfAbsent(streamKey, new ArrayList<>());
+            List<StreamEntry> stream = streams.get(streamKey);
 
-        if(entryId.endsWith("*")) {
+            if (entryId.endsWith("*")) {
+                String[] idParts = entryId.split("-");
+                long millisecondsTime = 0;
+                if (idParts.length > 1) {
+                    millisecondsTime = Long.parseLong(idParts[0]);
+                } else {
+                    millisecondsTime = System.currentTimeMillis();
+                }
+                long sequenceNumber = 0;
+
+                if (!stream.isEmpty()) {
+                    StreamEntry lastEntry = stream.get(stream.size() - 1);
+                    String[] lastIdParts = lastEntry.id.split("-");
+                    long lastMillisecondsTime = Long.parseLong(lastIdParts[0]);
+                    long lastSequenceNumber = Long.parseLong(lastIdParts[1]);
+
+                    if (millisecondsTime == lastMillisecondsTime) {
+                    sequenceNumber = lastSequenceNumber + 1;
+                    }
+                }
+
+                if (millisecondsTime == 0 && sequenceNumber < 1) {
+                    sequenceNumber = 1;
+                }
+
+                entryId = millisecondsTime + "-" + sequenceNumber;
+
+            } else if (!isValidEntryId(entryId)) {
+                out.write("-ERR Invalid entry ID format\r\n".getBytes());
+                return;
+            }
+
             String[] idParts = entryId.split("-");
-            long millisecondsTime=0;
-            if(idParts.length > 1){
-                millisecondsTime = Long.parseLong(idParts[0]);
-            }
-            else {
-                millisecondsTime = System.currentTimeMillis();
-            }
-            long sequenceNumber = 0;
+            long millisecondsTime = Long.parseLong(idParts[0]);
+            long sequenceNumber = Long.parseLong(idParts[1]);
 
-            if(!stream.isEmpty()){
-                StreamEntry lastEntry = stream.get(stream.size()-1);
+            if (millisecondsTime == 0 && sequenceNumber < 1) {
+                out.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
+                return;
+            }
+
+            if (!stream.isEmpty()) {
+                StreamEntry lastEntry = stream.get(stream.size() - 1);
                 String[] lastIdParts = lastEntry.id.split("-");
-                long lastMillisecondsTime = Long.parseLong(lastIdParts[0]);
+                long lastMilliSecondsTime = Long.parseLong(lastIdParts[0]);
                 long lastSequenceNumber = Long.parseLong(lastIdParts[1]);
 
-                if(millisecondsTime == lastMillisecondsTime){
-                    sequenceNumber = lastSequenceNumber + 1;
+                if (millisecondsTime < lastMilliSecondsTime || millisecondsTime == lastMilliSecondsTime && sequenceNumber <= lastSequenceNumber) {
+                    out.write("-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
+                    return;
                 }
             }
 
-            if(millisecondsTime == 0 && sequenceNumber<1){
-                sequenceNumber=1;
-            }
-
-            entryId = millisecondsTime + "-" + sequenceNumber;
-
-        } else if (!isValidEntryId(entryId)) {
-            out.write("-ERR Invalid entry ID format\r\n".getBytes());
-            return;
+            stream.add(new StreamEntry(entryId, fields));
+            streams.notifyAll();
         }
-
-        String[] idParts = entryId.split("-");
-        long millisecondsTime = Long.parseLong(idParts[0]);
-        long sequenceNumber = Long.parseLong(idParts[1]);
-
-        if(millisecondsTime == 0 && sequenceNumber < 1){
-            out.write("-ERR The ID specified in XADD must be greater than 0-0\r\n".getBytes());
-            return;
-        }
-
-        if(!stream.isEmpty()){
-            StreamEntry lastEntry = stream.get(stream.size() - 1);
-            String[] lastIdParts = lastEntry.id.split("-");
-            long lastMilliSecondsTime = Long.parseLong(lastIdParts[0]);
-            long lastSequenceNumber = Long.parseLong(lastIdParts[1]);
-
-            if(millisecondsTime < lastMilliSecondsTime || millisecondsTime == lastMilliSecondsTime && sequenceNumber <= lastSequenceNumber){
-                out.write("-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n".getBytes());
-                return;
-            }
-        }
-
-        stream.add(new StreamEntry(entryId,fields));
         out.write(String.format("$%d\r\n%s\r\n", entryId.length(), entryId).getBytes());
         System.out.println("Reached!");
     }
