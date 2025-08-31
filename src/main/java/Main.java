@@ -30,7 +30,6 @@ class StreamEntry{
     }
 }
 
-
 // Thread to handle client communication
 class ClientHandler extends Thread {
     private final Socket clientSocket;
@@ -40,7 +39,8 @@ class ClientHandler extends Thread {
     private static String dir;
     private static String dbfilename;
     private static boolean isReplica;
-
+    
+    
     // Hardcoded replication ID and offset
     private static final String REPLICATION_ID = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
     private static final long REPLICATION_OFFSET = 0;
