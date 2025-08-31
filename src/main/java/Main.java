@@ -341,9 +341,23 @@ class ClientHandler extends Thread {
         List<String> startIds = new ArrayList<>();
 
         int idsIndex = streamIndex + 1 + numStreams;
-        for(int i=0;i<numStreams;i++){
+        for (int i = 0; i < numStreams; i++) {
             streamKeys.add(commandParts[streamIndex + 1 + i]);
             startIds.add(commandParts[idsIndex + i]);
+        }
+
+        // Replace "$" with latest entry ID if stream is non-empty
+        for (int i = 0; i < numStreams; i++) {
+            String streamKey = streamKeys.get(i);
+            String startId = startIds.get(i);
+            if ("$".equals(startId)) {
+                List<StreamEntry> stream = streams.get(streamKey);
+                if (stream != null && !stream.isEmpty()) {
+                    StreamEntry lastEntry = stream.get(stream.size() - 1);
+                    startIds.set(i, lastEntry.id);
+                }
+                // else: keep "$" so client will block waiting for first entry
+            }
         }
 
         StringBuilder response = new StringBuilder();
