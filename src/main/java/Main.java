@@ -392,10 +392,10 @@ class ClientHandler extends Thread {
 
                          for(StreamEntry entry : result){
                              response.append("*2\r\n");
-                             response.append("$").append(entry.id.length()).append(entry.id).append("\r\n");
+                             response.append("$").append(entry.id.length()).append("\r\n").append(entry.id).append("\r\n");
                              response.append("*").append(entry.fields.size()*2).append("\r\n");
                              for(Map.Entry<String, String> field : entry.fields.entrySet()){
-                                 response.append("$").append(entry.id.length()).append("\r\n").append(entry.id).append("\r\n");
+                                 response.append("$").append(field.getKey().length()).append("\r\n").append(field.getKey()).append("\r\n");
                                  response.append("$").append(field.getValue().length()).append("\r\n").append(field.getValue()).append("\r\n");
                              }
                          }
