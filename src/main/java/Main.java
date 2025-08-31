@@ -39,8 +39,8 @@ class ClientHandler extends Thread {
     private static String dir;
     private static String dbfilename;
     private static boolean isReplica;
-    
-    
+
+
     // Hardcoded replication ID and offset
     private static final String REPLICATION_ID = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
     private static final long REPLICATION_OFFSET = 0;
@@ -220,8 +220,8 @@ class ClientHandler extends Thread {
             handleReplicaAck(currentOffset);
             out.write("+OK\r\n".getBytes());
         } else if(commandParts[1].equalsIgnoreCase("ACK")){
-                long ackOffset = currentOffset;
-                handleReplicaAck(ackOffset);
+            long ackOffset = currentOffset;
+            handleReplicaAck(ackOffset);
 //                out.write("+OK\r\n".getBytes());
         }
         else {
@@ -347,82 +347,97 @@ class ClientHandler extends Thread {
         }
 
         StringBuilder response = new StringBuilder();
-        long endTime = System.currentTimeMillis() + blockTimeout;
         boolean newEntriesFound = false;
+        boolean infiniteBlock = isBlocking && blockTimeout == 0;
+        long endTime = 0;
+        if (isBlocking && !infiniteBlock) {
+            endTime = System.currentTimeMillis() + blockTimeout;
+        }
 
         while (true){
+            response.setLength(0);
+            response.append("*").append(numStreams).append("\r\n");
 
-             response.setLength(0);
-             response.append("*").append(numStreams).append("\r\n");
+            synchronized (streams){
+                for(int i=0;i< numStreams;i++){
+                    String streamKey = streamKeys.get(i);
+                    String startId = startIds.get(i);
 
-             synchronized (streams){
-                 for(int i=0;i< numStreams;i++){
-                     String streamKey = streamKeys.get(i);
-                     String startId = startIds.get(i);
+                    List<StreamEntry> stream = streams.get(streamKey);
 
-                     List<StreamEntry> stream = streams.get(streamKey);
+                    response.append("*2\r\n");
+                    response.append("$").append(streamKey.length()).append("\r\n").append(streamKey).append("\r\n");
+                    if(stream == null | stream.isEmpty()){
+                        response.append("*0\r\n");
+                        continue;
+                    }
+                    long startMillis = 0;
+                    long startSeq = 0;
+                    if (!"0-0".equals(startId)) {
+                        String[] startParts = startId.split("-");
+                        startMillis = Long.parseLong(startParts[0]);
+                        startSeq = startParts.length > 1 ? Long.parseLong(startParts[1]) : 0;
+                    }
+                    List<StreamEntry> result = new ArrayList<>();
+                    for (StreamEntry entry : stream) {
+                        String[] idParts = entry.id.split("-");
+                        long entryMillis = Long.parseLong(idParts[0]);
+                        long entrySeq = Long.parseLong(idParts[1]);
 
-                     response.append("*2\r\n");
-                     response.append("$").append(streamKey.length()).append("\r\n").append(streamKey).append("\r\n");
-                     if(stream == null | stream.isEmpty()){
-                         response.append("*0\r\n");
-                         continue;
-                     }
-                     long startMillis=0;
-                     long startSeq=0;
-                     if(!"0-0".equals(startId)){
-                         String[] startParts = startId.split("-");
-                         startMillis = Long.parseLong(startParts[0]);
-                         startSeq = startParts.length > 1 ? Long.parseLong(startParts[1]) : 0;
-                     }
-                     List<StreamEntry> result = new ArrayList<>();
-                     for(StreamEntry entry : stream){
-                         String[] idParts = entry.id.split("-");
-                         long entryMillis = Long.parseLong(idParts[0]);
-                         long entrySeq = Long.parseLong(idParts[1]);
+                        if (entryMillis > startMillis || (entryMillis == startMillis && entrySeq > startSeq)) {
+                            result.add(entry);
+                        }
+                    }
 
-                         if(entryMillis > startMillis || (entryMillis == startMillis && entrySeq > startSeq)){
-                             result.add(entry);
-                         }
-                     }
+                    if (!result.isEmpty()) {
+                        newEntriesFound = true;
+                        response.append("*").append(result.size()).append("\r\n");
 
-                     if(!result.isEmpty()){
-                         newEntriesFound = true;
-                         response.append("*").append(result.size()).append("\r\n");
+                        for (StreamEntry entry : result) {
+                            response.append("*2\r\n");
+                            response.append("$").append(entry.id.length()).append("\r\n").append(entry.id).append("\r\n");
+                            response.append("*").append(entry.fields.size() * 2).append("\r\n");
+                            for (Map.Entry<String, String> field : entry.fields.entrySet()) {
+                                response.append("$").append(field.getKey().length()).append("\r\n").append(field.getKey()).append("\r\n");
+                                response.append("$").append(field.getValue().length()).append("\r\n").append(field.getValue()).append("\r\n");
+                            }
+                        }
+                    } else {
+                        response.append("*0\r\n");
+                    }
+                }
 
-                         for(StreamEntry entry : result){
-                             response.append("*2\r\n");
-                             response.append("$").append(entry.id.length()).append("\r\n").append(entry.id).append("\r\n");
-                             response.append("*").append(entry.fields.size()*2).append("\r\n");
-                             for(Map.Entry<String, String> field : entry.fields.entrySet()){
-                                 response.append("$").append(field.getKey().length()).append("\r\n").append(field.getKey()).append("\r\n");
-                                 response.append("$").append(field.getValue().length()).append("\r\n").append(field.getValue()).append("\r\n");
-                             }
-                         }
-                     } else{
-                         response.append("*0\r\n");
-                     }
-                 }
+                // New logic for blocking/infinite blocking
+                boolean shouldBreak = false;
+                if (newEntriesFound) {
+                    shouldBreak = true;
+                } else if (!isBlocking) {
+                    shouldBreak = true;
+                } else if (isBlocking && !infiniteBlock && System.currentTimeMillis() >= endTime) {
+                    shouldBreak = true;
+                }
+                if (shouldBreak) {
+                    break;
+                }
 
-                 if(newEntriesFound || !isBlocking || System.currentTimeMillis() >= endTime){
-                     break;
-                 }
-
-                 try{
-                     streams.wait(Math.max(1, endTime - System.currentTimeMillis()));
-                 }
-                 catch (InterruptedException e){
-                     Thread.currentThread().interrupt();
-                     out.write("$-1\r\n".getBytes());
-                     return;
-                 }
-             }
+                try {
+                    if (infiniteBlock) {
+                        streams.wait(0); // Wait indefinitely
+                    } else {
+                        long waitTime = Math.max(1, endTime - System.currentTimeMillis());
+                        streams.wait(waitTime);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    out.write("$-1\r\n".getBytes());
+                    return;
+                }
+            }
         }
 
-        if(newEntriesFound){
+        if (newEntriesFound) {
             out.write(response.toString().getBytes());
-        }
-        else{
+        } else {
             out.write("*-1\r\n".getBytes());
         }
         System.out.println("Reached xread!");
@@ -530,7 +545,7 @@ class ClientHandler extends Thread {
                     long lastSequenceNumber = Long.parseLong(lastIdParts[1]);
 
                     if (millisecondsTime == lastMillisecondsTime) {
-                    sequenceNumber = lastSequenceNumber + 1;
+                        sequenceNumber = lastSequenceNumber + 1;
                     }
                 }
 
