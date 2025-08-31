@@ -363,7 +363,7 @@ class ClientHandler extends Thread {
                      List<StreamEntry> stream = streams.get(streamKey);
 
                      response.append("*2\r\n");
-                     response.append("$").append(streamKey.length()).append("\r\n");
+                     response.append("$").append(streamKey.length()).append("\r\n").append(streamKey).append("\r\n");
                      if(stream == null | stream.isEmpty()){
                          response.append("*0\r\n");
                          continue;
