@@ -348,9 +348,9 @@ class ClientHandler extends Thread {
 
         StringBuilder response = new StringBuilder();
         long endTime = System.currentTimeMillis() + blockTimeout;
+        boolean newEntriesFound = false;
 
         while (true){
-            boolean newEntriesFound = false;
 
              response.setLength(0);
              response.append("*").append(numStreams).append("\r\n");
@@ -419,11 +419,11 @@ class ClientHandler extends Thread {
              }
         }
 
-        if(response.length() > 0){
+        if(newEntriesFound){
             out.write(response.toString().getBytes());
         }
         else{
-            out.write("$-1\r\n".getBytes());
+            out.write("*-1\r\n".getBytes());
         }
         System.out.println("Reached xread!");
     }
